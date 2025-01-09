@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puli Herding Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            background-color: #87CEEB;
+        }
+        .pen {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 200px; /* Double the original width */
+            height: 200px; /* Double the original height */
+            border: 5px solid brown;
+            background-color: #8B4513;
+        }
+        #counter {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            color: white;
+            background-color: black;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        #timer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: white;
+            background-color: black;
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="pen"></div>
+    <div id="counter">Sheep in Pen: 0</div>
+    <div id="timer">Time: 0s</div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        // Get the canvas and context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Timer variables
+        let startTime = Date.now();
+        let timerDiv = document.getElementById('timer');
+
+        // Function to update the timer
+        function updateTimer() {
+            const currentTime = Date.now();
+            const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+            timerDiv.innerText = `Time: ${elapsedSeconds}s`;
+        }
+
+        // Puli Dog Object
+        const puli = {
+            x: 50,
+            y: 50,
+            width: 60,
+            height: 60,
+            speed: 5,
+            image: new Image(),
+        };
+        puli.image.src = 'https://i.imgur.com/7MDx5UT.jpeg'; // Updated Puli dog image
+
+        // Sheep Objects Array
+        const sheepArray = [];
+        const sheepCount = 5;
+        for (let i = 0; i < sheepCount; i++) {
+            sheepArray.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                width: 40,
+                height: 40,
+                speed: 1.2, // Reduced sheep speed
+                image: new Image(),
+                dx: 1,
+                dy: 1,
+                inPen: false
+            });
+        }
+        sheepArray.forEach(sheep => {
+            sheep.image.src = 'https://i.imgur.com/a5nXpa9.jpeg'; // Updated Sheep image
+        });
+
+        // Pen for the sheep (size doubled)
+        const pen = {
+            x: 20,
+            y: canvas.height - 220, // Adjusted position due to larger size
+            width: 200, // Doubled width
+            height: 200 // Doubled height
+        };
+
+        // Input tracking
+        let keys = {};
+
+        window.addEventListener('keydown', function (e) {
+            keys[e.key] = true;
+        });
+
+        window.addEventListener('keyup', function (e) {
+            keys[e.key] = false;
+        });
+
+        // Counter for sheep in the pen
+        let sheepInPenCount = 0;
+        const counterDiv = document.getElementById('counter');
+
+        // Update puli's position
+        function movePuli() {
+            if (keys['w'] && puli.y > 0) {
+                puli.y -= puli.speed;
+            }
+            if (keys['s'] && puli.y + puli.height < canvas.height) {
+                puli.y += puli.speed;
+            }
+            if (keys['a'] && puli.x > 0) {
+                puli.x -= puli.speed;
+            }
+            if (keys['d'] && puli.x + puli.width < canvas.width) {
+                puli.x += puli.speed;
+            }
+        }
+
+        // Update sheep's position and make them avoid the dog
+        function moveSheep(sheep) {
+            if (!sheep.inPen) {
+                const distanceX = sheep.x - puli.x;
+                const distanceY = sheep.y - puli.y;
+                const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+                // If the puli is close, sheep move away
+                if (distance < 200) {
+                    sheep.dx = distanceX > 0 ? 1 : -1;
+                    sheep.dy = distanceY > 0 ? 1 : -1;
+                }
+
+                sheep.x += sheep.dx * sheep.speed;
+                sheep.y += sheep.dy * sheep.speed;
+
+                // Make sure sheep don't leave the screen
+                if (sheep.x < 0) {
+                    sheep.x = 0;
+                    sheep.dx *= -1;
+                }
+                if (sheep.x + sheep.width > canvas.width) {
+                    sheep.x = canvas.width - sheep.width;
+                    sheep.dx *= -1;
+                }
+                if (sheep.y < 0) {
+                    sheep.y = 0;
+                    sheep.dy *= -1;
+                }
+                if (sheep.y + sheep.height > canvas.height) {
+                    sheep.y = canvas.height - sheep.height;
+                    sheep.dy *= -1;
+                }
+            }
+        }
+
+        // Check if sheep are entirely in the pen
+        function checkPen() {
+            sheepInPenCount = 0;
+            for (const sheep of sheepArray) {
+                const isEntirelyInPenX = sheep.x >= pen.x && sheep.x + sheep.width <= pen.x + pen.width;
+                const isEntirelyInPenY = sheep.y >= pen.y && sheep.y + sheep.height <= pen.y + pen.height;
+
+                if (isEntirelyInPenX && isEntirelyInPenY) {
+                    sheep.inPen = true;
+                    sheep.dx = 0; // Stop sheep's horizontal movement
+                    sheep.dy = 0; // Stop sheep's vertical movement
+                    sheepInPenCount++;
+                } else {
+                    sheep.inPen = false;
+                }
+            }
+
+            // Update the counter display
+            counterDiv.innerText = `Sheep in Pen: ${sheepInPenCount}`;
+
+            // Check win condition
+            if (sheepInPenCount === sheepCount) {
+                alert(`Congratulations! You herded all the sheep in ${Math.floor((Date.now() - startTime) / 1000)} seconds!`);
+                resetGame();
+            }
+        }
+
+        // Reset game after winning
+        function resetGame() {
+            sheepArray.forEach(sheep => {
+                sheep.x = Math.random() * canvas.width;
+                sheep.y = Math.random() * canvas.height;
+                sheep.inPen = false;
+                sheep.dx = 1; // Reset sheep movement
+                sheep.dy = 1; // Reset sheep movement
+            });
+            sheepInPenCount = 0;
+            counterDiv.innerText = `Sheep in Pen: 0`;
+            startTime = Date.now(); // Reset timer
+        }
+
+        // Draw the game objects
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Puli
+            ctx.drawImage(puli.image, puli.x, puli.y, puli.width, puli.height);
+
+            // Draw Sheep
+            for (const sheep of sheepArray) {
+                ctx.drawImage(sheep.image, sheep.x, sheep.y, sheep.width, sheep.height);
+            }
+        }
+
+        // Game loop
+        function gameLoop() {
+            movePuli();
+            for (const sheep of sheepArray) {
+                moveSheep(sheep);
+            }
+            checkPen();
+            updateTimer();
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>
