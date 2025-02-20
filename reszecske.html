@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>100 Molekula Energia Szimuláció</title>
+  <!-- Vidám retro betűtípus -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+      font-family: 'Press Start 2P', cursive;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #fff;
+      text-shadow: 2px 2px #333;
+      margin-bottom: 10px;
+    }
+    .main-container {
+      display: flex;
+      max-width: 1200px;
+      margin: auto;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    /* Oldalsáv stílusa */
+    #sidebar {
+      flex: 0 0 300px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 15px;
+      border: 3px solid #333;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+    #sidebar h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    #sidebar p {
+      font-size: 12px;
+      line-height: 1.4;
+      color: #333;
+    }
+    /* Szimulációs tartály stílusa */
+    #simulation {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    /* Molekulák energia diagramja */
+    #chart {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      width: 90%;
+      max-width: 800px;
+      height: 300px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 3px solid #333;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      overflow-x: auto;
+    }
+    .bar {
+      width: 5px;
+      margin: 0 1px;
+      background: linear-gradient(180deg, #ff6f69, #ffcc5c);
+      border-radius: 5px 5px 0 0;
+      transition: height 0.2s ease;
+    }
+    /* Energiaeloszlás hisztogramja */
+    #histogram {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      width: 90%;
+      max-width: 800px;
+      height: 300px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 3px solid #333;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      overflow-x: auto;
+    }
+    .hist-bar-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      margin: 0 5px;
+      height: 100%;
+    }
+    .hist-bar {
+      width: 20px;
+      background: linear-gradient(180deg, #ffcc5c, #ff6f69);
+      border-radius: 5px 5px 0 0;
+      transition: height 0.2s ease;
+    }
+    /* Gombok stílusa */
+    #reset, #startStop {
+      margin-top: 30px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #ffcc5c;
+      border: 3px solid #333;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #reset:hover, #startStop:hover {
+      background: #ff6f69;
+      color: #fff;
+    }
+    .button-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>100 Molekula Energia Szimuláció</h1>
+  <div class="main-container">
+    <!-- Oldalsáv leírással -->
+    <div id="sidebar">
+      <h2>A szimulációról</h2>
+      <p>
+        Ez a szimuláció egy zárt rendszerben 100 molekula közötti energiaátvitelt modellez.
+        Minden molekula 1 egység energiával kezd. Minden körben egy véletlenszerű molekula (ha rendelkezik energiával)
+        1 egységet ad át egy másik, véletlenszerűen kiválasztott molekulának. A felső diagram a molekulák energiáját mutatja,
+        míg az alsó hisztogram az energiaeloszlást jeleníti meg – beleértve azokat az energiaszinteket is, ahol jelenleg nincs molekula.
+        A szimulációt bármikor elindíthatja/megállíthatja, illetve alaphelyzetbe állíthatja.
+      </p>
+    </div>
+    
+    <!-- Szimulációs kijelző -->
+    <div id="simulation">
+      <h2>Molekulák Energia Diagramja</h2>
+      <div id="chart">
+        <!-- A 100 molekula oszlopot JavaScript hozza létre -->
+      </div>
+      
+      <h2>Energiaeloszlás Hisztogramja</h2>
+      <div id="histogram">
+        <!-- A hisztogram oszlopait JavaScript hozza létre -->
+      </div>
+      
+      <div class="button-container">
+        <button id="reset">Szimuláció alaphelyzetbe állítása</button>
+        <button id="startStop">Szimuláció leállítása</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const moleculeCount = 100;
+    let energies = Array(moleculeCount).fill(1);
+    let simulationInterval = null;
+    let simulationRunning = true;
+    let roundCounter = 0;
+    
+    // Molekula oszlopok létrehozása az energia diagramhoz.
+    function createMoleculeBars() {
+      const chart = document.getElementById("chart");
+      chart.innerHTML = "";
+      for (let i = 0; i < moleculeCount; i++) {
+        const bar = document.createElement("div");
+        bar.classList.add("bar");
+        bar.id = "bar-" + i;
+        chart.appendChild(bar);
+      }
+    }
+    
+    createMoleculeBars();
+    
+    // Az energia diagram frissítése a jelenlegi energiaszintek alapján.
+    function updateDiagram() {
+      const maxEnergy = Math.max(...energies);
+      for (let i = 0; i < moleculeCount; i++) {
+        const bar = document.getElementById("bar-" + i);
+        const heightPercent = maxEnergy ? (energies[i] / maxEnergy) * 100 : 0;
+        bar.style.height = heightPercent + "%";
+      }
+    }
+    
+    // A hisztogram frissítése, folyamatos energiaszintekkel 0-tól maxig.
+    function updateHistogram() {
+      const frequency = {};
+      energies.forEach(energy => {
+        frequency[energy] = (frequency[energy] || 0) + 1;
+      });
+      
+      const maxEnergy = Math.max(...energies);
+      const histogramDiv = document.getElementById("histogram");
+      histogramDiv.innerHTML = "";
+      
+      let maxCount = 0;
+      for (let e = 0; e <= maxEnergy; e++) {
+        maxCount = Math.max(maxCount, frequency[e] || 0);
+      }
+      maxCount = maxCount || 1;
+      
+      for (let energy = 0; energy <= maxEnergy; energy++) {
+        const count = frequency[energy] || 0;
+        const container = document.createElement("div");
+        container.classList.add("hist-bar-container");
+        
+        const bar = document.createElement("div");
+        bar.classList.add("hist-bar");
+        const heightPercent = (count / maxCount) * 100;
+        bar.style.height = heightPercent + "%";
+        
+        const label = document.createElement("div");
+        label.textContent = energy;
+        label.style.fontSize = "12px";
+        label.style.marginTop = "5px";
+        label.style.color = "#333";
+        
+        container.appendChild(bar);
+        container.appendChild(label);
+        histogramDiv.appendChild(container);
+      }
+    }
+    
+    // Egy szimulációs kör végrehajtása: egy véletlenszerű molekula (ha rendelkezik energiával)
+    // 1 egységet ad át egy másik, véletlenszerűen kiválasztott molekulának.
+    function simulateRound() {
+      const sourceIndex = Math.floor(Math.random() * moleculeCount);
+      if (energies[sourceIndex] > 0) {
+        let targetIndex;
+        do {
+          targetIndex = Math.floor(Math.random() * moleculeCount);
+        } while (targetIndex === sourceIndex);
+        energies[sourceIndex]--;
+        energies[targetIndex]++;
+      }
+      roundCounter++;
+      if (roundCounter % 10 === 0) {
+        updateDiagram();
+        updateHistogram();
+      }
+    }
+    
+    // A szimuláció alaphelyzetbe állítása.
+    function resetSimulation() {
+      energies = Array(moleculeCount).fill(1);
+      roundCounter = 0;
+      updateDiagram();
+      updateHistogram();
+    }
+    
+    // A szimuláció elindítása/megállítása.
+    function toggleSimulation() {
+      const btn = document.getElementById("startStop");
+      if (simulationRunning) {
+        clearInterval(simulationInterval);
+        simulationInterval = null;
+        simulationRunning = false;
+        btn.textContent = "Szimuláció elindítása";
+      } else {
+        simulationInterval = setInterval(simulateRound, 50);
+        simulationRunning = true;
+        btn.textContent = "Szimuláció leállítása";
+      }
+    }
+    
+    document.getElementById("reset").addEventListener("click", resetSimulation);
+    document.getElementById("startStop").addEventListener("click", toggleSimulation);
+    
+    simulationInterval = setInterval(simulateRound, 50);
+    
+    updateDiagram();
+    updateHistogram();
+  </script>
+</body>
+</html>
