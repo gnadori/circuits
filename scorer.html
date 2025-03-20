@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BattleBot Scoring</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        body {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            background-color: black;
+            color: white;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            border: 3px solid cyan;
+            padding: 20px;
+            background-color: #222;
+            box-shadow: 0 0 20px cyan;
+        }
+        #timer {
+            font-size: 3em;
+            padding: 10px;
+            border: 2px solid magenta;
+            display: inline-block;
+            background-color: black;
+            color: magenta;
+            box-shadow: 0 0 10px magenta;
+        }
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .team {
+            text-align: center;
+            padding: 20px;
+        }
+        .red {
+            color: red;
+            border: 2px solid red;
+            padding: 10px;
+            font-size: 2em;
+            box-shadow: 0 0 10px red;
+        }
+        .blue {
+            color: cyan;
+            border: 2px solid cyan;
+            padding: 10px;
+            font-size: 2em;
+            box-shadow: 0 0 10px cyan;
+        }
+        .buttons button {
+            display: block;
+            margin: 5px auto;
+            padding: 15px;
+            font-size: 1.2em;
+            border: none;
+            cursor: pointer;
+            color: white;
+            background-color: #333;
+            box-shadow: 0 0 10px white;
+        }
+        .buttons button:hover {
+            background-color: cyan;
+        }
+        button.control {
+            background-color: magenta;
+            color: white;
+            padding: 15px;
+            font-size: 1.5em;
+            border: none;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 0 10px magenta;
+        }
+        button.control:hover {
+            background-color: cyan;
+        }
+    </style>
+</head>
+<body>
+    <audio id="startSound" src="https://cdn.pixabay.com/download/audio/2023/10/18/audio_f9de554784.mp3"></audio>
+    <audio id="scoreSoundRed" src="https://cdn.pixabay.com/download/audio/2023/11/30/audio_689d3968ce.mp3"></audio>
+    <audio id="scoreSoundBlue" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_14b2f049f2.mp3"></audio>
+    
+    <div class="container">
+        <div id="timer">3:00</div>
+        <br>
+        <button class="control" onclick="startTimer()">Start</button>
+        <button class="control" onclick="stopTimer()">Stop</button>
+        <button class="control" onclick="resetTimer()">Reset</button>
+        
+        <div class="scoreboard">
+            <div class="team">
+                <div class="red"> <span id="scoreRed">0</span> </div>
+                <div class="buttons">
+                    <button onclick="addScore('red', 1)">Hit (W)</button>
+                    <button onclick="addScore('red', 3)">Lift (S)</button>
+                    <button onclick="addScore('red', 2)">Damage (X)</button>
+                </div>
+            </div>
+            <div class="team">
+                <div class="blue"> <span id="scoreBlue">0</span> </div>
+                <div class="buttons">
+                    <button onclick="addScore('blue', 1)">Hit (O)</button>
+                    <button onclick="addScore('blue', 3)">Lift (K)</button>
+                    <button onclick="addScore('blue', 2)">Damage (M)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let timer;
+        let timeLeft = 180;
+        
+        function startTimer() {
+            clearInterval(timer);
+            let startSound = document.getElementById("startSound");
+            startSound.currentTime = 0;
+            startSound.play();
+            timer = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                } else {
+                    timeLeft--;
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            clearInterval(timer);
+        }
+        
+        function resetTimer() {
+            clearInterval(timer);
+            timeLeft = 180;
+            updateTimerDisplay();
+            document.getElementById("scoreRed").innerText = "0";
+            document.getElementById("scoreBlue").innerText = "0";
+        }
+        
+        function updateTimerDisplay() {
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            document.getElementById("timer").innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+        
+        function addScore(team, points) {
+            let sound = document.getElementById(team === 'red' ? "scoreSoundRed" : "scoreSoundBlue");
+            sound.currentTime = 0;
+            sound.play();
+            let scoreElement = document.getElementById(team === 'red' ? "scoreRed" : "scoreBlue");
+            scoreElement.innerText = parseInt(scoreElement.innerText) + points;
+        }
+        
+        document.addEventListener("keydown", function(event) {
+            switch(event.key.toLowerCase()) {
+                case 'w': addScore('red', 1); break;
+                case 's': addScore('red', 3); break;
+                case 'x': addScore('red', 2); break;
+                case 'o': addScore('blue', 1); break;
+                case 'k': addScore('blue', 3); break;
+                case 'm': addScore('blue', 2); break;
+            }
+        });
+    </script>
+</body>
+</html>
