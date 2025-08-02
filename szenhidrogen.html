@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Szénhidrogének elnevezése/title>
+  <title>Szénhidrogén Névellenőrző</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Rubik:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -33,7 +33,7 @@
 </head>
 <body>
   <header>
-    <h1>Szénhidrogének elnevezése</h1>
+    <h1>Szénhidrogén Névellenőrző</h1>
   </header>
   <main>
     <div class="controls">
@@ -49,7 +49,7 @@
     <canvas id="molecule" width="600" height="250"></canvas>
     <div class="controls">
       <label for="nameInput">Molekula neve:</label>
-      <input type="text" id="nameInput" placeholder="pl. 2-metil-but-3-én">
+      <input type="text" id="nameInput" placeholder="pl. but-3-én">
       <button id="checkBtn">Ellenőriz</button>
     </div>
     <div id="result" aria-live="polite"></div>
@@ -61,7 +61,7 @@
       <div>4-es: <span id="correct4">0</span>✔ / <span id="wrong4">0</span>✘</div>
     </section>
   </main>
-  <footer>© 2025 Szénhidrogének elnevezése</footer>
+  <footer>© 2025 Szénhidrogén Névellenőrző</footer>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const prefixes = ["", "met", "et", "prop", "but", "pent", "hex", "hept", "okt", "non", "dek"];
