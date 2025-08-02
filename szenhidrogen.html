@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Szénhidrogének elnevezése</title>
+  <title>Szénhidrogének elnevezése/title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Rubik:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -15,23 +15,20 @@
       --font-mono: 'Roboto Mono', monospace;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; background: var(--light); color: var(--primary); font-family: var(--font-sans); }
-    header { background: var(--primary); color: var(--light); padding: 1rem; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    h1 { margin: 0; font-size: 1.75rem; }
+    body { margin: 0; background: var(--light); color: var(--primary); font-family: var(--font-sans); }
+    header { background: var(--primary); color: var(--light); padding: 1rem; text-align: center; }
     main { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
     .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
     label { font-weight: 500; }
     select, input[type=text] { flex: 1; padding: 0.5rem; border: 1px solid var(--dark); border-radius: 4px; font-family: var(--font-mono); }
-    button { padding: 0.5rem 1rem; border: none; background: var(--accent); color: var(--light); font-weight: 700; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
-    button:hover { background: #138d75; }
+    button { padding: 0.5rem 1rem; background: var(--accent); color: var(--light); border: none; border-radius: 4px; cursor: pointer; }
     canvas { display: block; margin: 0 auto 1rem; background: #fff; border: 2px solid var(--dark); border-radius: 8px; }
     #result { font-size: 1.1rem; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
     #result.success { background: #dff0d8; color: #3c763d; }
     #result.error { background: #f2dede; color: #a94442; }
-    #stats { background: #fff; padding: 1rem; border: 1px solid var(--dark); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    #stats h2 { margin-top: 0; }
+    #stats { background: #fff; padding: 1rem; border: 1px solid var(--dark); border-radius: 8px; }
     #stats div { display: flex; justify-content: space-between; padding: 0.25rem 0; font-family: var(--font-mono); }
-    footer { text-align: center; margin: 2rem 0; font-size: 0.9rem; color: var(--dark); }
+    footer { text-align: center; margin: 2rem 0; color: var(--dark); }
   </style>
 </head>
 <body>
@@ -45,164 +42,177 @@
         <option value="1">1: Nyílt lánc, elágazás nélkül</option>
         <option value="2">2: Nyílt lánc, 1 elágazás</option>
         <option value="3">3: Nyílt lánc, több elág.</option>
-        <option value="4">4: Nyílt lánc/gyűrű több elág.</option>
+        <option value="4">4: Nyílt lánc/gyűrű (≥5 atom)</option>
       </select>
       <button id="newBtn">Új molekula</button>
     </div>
     <canvas id="molecule" width="600" height="250"></canvas>
     <div class="controls">
       <label for="nameInput">Molekula neve:</label>
-      <input type="text" id="nameInput" placeholder="pl. 3-metil-2,4-butadién">
+      <input type="text" id="nameInput" placeholder="pl. 2-metil-but-3-én">
       <button id="checkBtn">Ellenőriz</button>
     </div>
     <div id="result" aria-live="polite"></div>
     <section id="stats">
       <h2>Statisztika</h2>
-      <div><span>1-es:</span><span><span id="correct1">0</span>✔ / <span id="wrong1">0</span>✘</span></div>
-      <div><span>2-es:</span><span><span id="correct2">0</span>✔ / <span id="wrong2">0</span>✘</span></div>
-      <div><span>3-as:</span><span><span id="correct3">0</span>✔ / <span id="wrong3">0</span>✘</span></div>
-      <div><span>4-es:</span><span><span id="correct4">0</span>✔ / <span id="wrong4">0</span>✘</span></div>
+      <div>1-es: <span id="correct1">0</span>✔ / <span id="wrong1">0</span>✘</div>
+      <div>2-es: <span id="correct2">0</span>✔ / <span id="wrong2">0</span>✘</div>
+      <div>3-as: <span id="correct3">0</span>✔ / <span id="wrong3">0</span>✘</div>
+      <div>4-es: <span id="correct4">0</span>✔ / <span id="wrong4">0</span>✘</div>
     </section>
   </main>
   <footer>© 2025 Szénhidrogének elnevezése</footer>
   <script>
-    const prefixes = ["", "met", "et", "prop", "but", "pent", "hex", "hept", "okt", "non", "dek"];
-    const maxL = 10;
-    let currentName = '';
-    const stats = {1:{correct:0,wrong:0},2:{correct:0,wrong:0},3:{correct:0,wrong:0},4:{correct:0,wrong:0}};
+    document.addEventListener('DOMContentLoaded', () => {
+      const prefixes = ["", "met", "et", "prop", "but", "pent", "hex", "hept", "okt", "non", "dek"];
+      const maxL = 10;
+      let currentName = '';
+      const stats = {1:{correct:0,wrong:0},2:{correct:0,wrong:0},3:{correct:0,wrong:0},4:{correct:0,wrong:0}};
 
-    function normalize(str) {
-      return str.normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/\s+/g, '')
-        .toLowerCase();
-    }
-
-    function updateStatsUI(level) {
-      document.getElementById(`correct${level}`).textContent = stats[level].correct;
-      document.getElementById(`wrong${level}`).textContent = stats[level].wrong;
-    }
-
-    function drawMolecule() {
-      const canvas = document.getElementById('molecule');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const diff = +document.getElementById('difficulty').value;
-      let isCyclic = false;
-      let L;
-      if (diff === 4 && Math.random() < 0.5) {
-        isCyclic = true;
-        L = Math.floor(Math.random() * (maxL - 4)) + 5;
-      } else {
-        L = Math.floor(Math.random() * (maxL - 2)) + 3;
+      function normalize(str) {
+        return str.normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '')
+                  .replace(/\s+/g, '')
+                  .toLowerCase();
       }
 
-      // kettős kötés pozíciók
-      let dbCount = (diff <= 2) ? (Math.random() < 0.5 ? 1 : 0) : Math.floor(Math.random() * Math.min(2, L - 1)) + 1;
-      const bonds = Array.from({length: L - 1}, (_, i) => i + 1);
-      const dbPos = [];
-      for (let i = 0; i < dbCount; i++) {
-        const idx = Math.floor(Math.random() * bonds.length);
-        dbPos.push(bonds.splice(idx, 1)[0]);
+      function updateStatsUI(level) {
+        document.getElementById(`correct${level}`).textContent = stats[level].correct;
+        document.getElementById(`wrong${level}`).textContent = stats[level].wrong;
       }
 
-      // elágazások
-      let branchCount = (diff === 2) ? 1 : (diff >= 3 ? Math.floor(Math.random() * 2) + 1 : 0);
-      const sites = Array.from({length: L}, (_, i) => i + 1).filter(i => i > 1 && i < L);
-      const branches = [];
-      for (let i = 0; i < branchCount; i++) {
-        if (!sites.length) break;
-        const idx = Math.floor(Math.random() * sites.length);
-        const pos = sites.splice(idx, 1)[0];
-        const len = Math.floor(Math.random() * Math.min(3, L - 2)) + 1;
-        branches.push({pos, len});
-      }
+      function drawMolecule() {
+        const canvas = document.getElementById('molecule');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // számozási irány
-      const fDbMin = dbPos.length ? Math.min(...dbPos) : Infinity;
-      const revDb = dbPos.map(p => L - p).sort((a,b) => a - b);
-      const rDbMin = revDb.length ? revDb[0] : Infinity;
-      if (rDbMin < fDbMin) {
-        dbPos.splice(0, dbPos.length, ...revDb);
-        branches.forEach(b => b.pos = L - b.pos + 1);
-      } else {
-        dbPos.sort((a,b) => a - b);
-      }
+        const diff = +document.getElementById('difficulty').value;
+        let isCyclic = false;
+        let L;
+        if (diff === 4 && Math.random() < 0.5) {
+          isCyclic = true;
+          L = Math.floor(Math.random() * (maxL - 4)) + 5;
+        } else {
+          L = Math.floor(Math.random() * (maxL - 2)) + 3;
+        }
 
-      // név összeállítása
-      const subGroups = {};
-      branches.forEach(b => { subGroups[b.len] = subGroups[b.len] || []; subGroups[b.len].push(b.pos); });
-      const parts = [];
-      Object.keys(subGroups).sort((a,b) => +a - +b).forEach(lenKey => {
-        const poses = subGroups[lenKey].sort((a,b) => a - b);
-        const cnt = poses.length;
-        const mult = cnt === 2 ? 'di' : cnt === 3 ? 'tri' : cnt === 4 ? 'tetra' : '';
-        parts.push(`${poses.join(',')}-${mult}${prefixes[lenKey]}il`);
-      });
-      const root = isCyclic ? `ciklo${prefixes[L]}` : prefixes[L];
-      let suffix;
-      if (dbPos.length > 1) {
-        const multi = dbPos.length === 2 ? 'dién' : dbPos.length === 3 ? 'trién' : 'én';
-        suffix = `${dbPos.join(',')}-${root.replace(/án$|én$/,'')}a${multi}`;
-      } else if (dbPos.length === 1) {
-        suffix = `${dbPos[0]}-${root}én`;
-      } else {
-        suffix = `${root}án`;
-      }
-      parts.push(suffix);
-      currentName = parts.join('-');
+        // kettőskötések
+        const dbCount = (diff <= 2) ? (Math.random() < 0.5 ? 1 : 0) : Math.floor(Math.random() * Math.min(2, L - 1)) + 1;
+        const bonds = Array.from({length: L - 1}, (_, i) => i + 1);
+        const dbPos = [];
+        for (let i = 0; i < dbCount; i++) {
+          const idx = Math.floor(Math.random() * bonds.length);
+          dbPos.push(bonds.splice(idx, 1)[0]);
+        }
 
-      // pontok és rajzolás
-      const pts = [];
-      if (isCyclic) {
-        const cx = canvas.width/2, cy = canvas.height/2, r = Math.min(canvas.width, canvas.height)/3;
-        for (let i = 0; i < L; i++) pts.push({ x: cx + r*Math.cos(2*Math.PI*i/L - Math.PI/2), y: cy + r*Math.sin(2*Math.PI*i/L - Math.PI/2) });
-      } else {
-        const startX = 50, startY = canvas.height/2, dx = (canvas.width - 100)/(maxL - 1);
-        for (let i = 0; i < L; i++) pts.push({ x: startX + dx*i, y: startY + (i%2 ? 20 : -20) });
-      }
-      ctx.lineWidth = 2; ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
-      pts.forEach((p,i) => {
-        ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
-        const next = pts[(i+1)%pts.length]; if (i < pts.length-1 || isCyclic) {
-          const idx = isCyclic ? (i+1)%pts.length : i+1;
-          if (dbPos.includes(idx)) {
-            const off = 4, ang = Math.atan2(next.y-p.y,next.x-p.x);
-            const dxo = Math.sin(ang)*off, dyo = -Math.cos(ang)*off;
-            ctx.beginPath(); ctx.moveTo(p.x+dxo,p.y+dyo); ctx.lineTo(next.x+dxo,next.y+dyo); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x-dxo,p.y-dyo); ctx.lineTo(next.x-dxo,next.y-dyo); ctx.stroke();
-          } else {
-            ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(next.x,next.y); ctx.stroke();
+        // elágazások
+        const branchCount = (diff === 2) ? 1 : (diff >= 3 ? Math.floor(Math.random() * 2) + 1 : 0);
+        const sites = Array.from({length: L}, (_, i) => i + 1).filter(i => i > 1 && i < L);
+        const branches = [];
+        for (let i = 0; i < branchCount; i++) {
+          if (!sites.length) break;
+          const idx = Math.floor(Math.random() * sites.length);
+          const pos = sites.splice(idx, 1)[0];
+          const len = Math.floor(Math.random() * Math.min(3, L - 2)) + 1;
+          branches.push({pos, len});
+        }
+
+        // számozási irány
+        const fMin = dbPos.length ? Math.min(...dbPos) : Infinity;
+        const rev = dbPos.map(p => L - p).sort((a,b) => a - b);
+        const rMin = rev.length ? rev[0] : Infinity;
+        if (rMin < fMin) {
+          dbPos.splice(0, dbPos.length, ...rev);
+          branches.forEach(b => b.pos = L - b.pos + 1);
+        } else {
+          dbPos.sort((a,b) => a - b);
+        }
+
+        // név összeállítása
+        const subGroups = {};
+        branches.forEach(b => { subGroups[b.len] = subGroups[b.len] || []; subGroups[b.len].push(b.pos); });
+        const parts = [];
+        Object.keys(subGroups).sort((a,b) => +a - +b).forEach(lenKey => {
+          const poses = subGroups[lenKey].sort((a,b) => a - b);
+          const cnt = poses.length;
+          const mult = cnt === 2 ? 'di' : cnt === 3 ? 'tri' : cnt === 4 ? 'tetra' : '';
+          parts.push(`${poses.join(',')}-${mult}${prefixes[lenKey]}il`);
+        });
+        const root = isCyclic ? `ciklo${prefixes[L]}` : prefixes[L];
+        let suffix;
+        if (dbPos.length > 1) {
+          // több kötés: root-lánc-pozíciók-multi végződés, pl. hept-1,2-dién
+          const multi = dbPos.length === 2 ? 'dién' : dbPos.length === 3 ? 'trién' : 'én';
+          suffix = `${root}-${dbPos.join(',')}-${multi}`;
+        } else if (dbPos.length === 1) {
+          suffix = `${root}-${dbPos[0]}-én`;
+        } else {
+          suffix = `${root}án`;
+        }
+        parts.push(suffix);
+        currentName = parts.join('-');
+
+        // megrajzolás
+        const pts = [];
+        if (isCyclic) {
+          const cx = canvas.width/2, cy = canvas.height/2, r = Math.min(canvas.width, canvas.height)/3;
+          for (let i = 0; i < L; i++) pts.push({ x: cx + r * Math.cos(2*Math.PI*i/L - Math.PI/2), y: cy + r * Math.sin(2*Math.PI*i/L - Math.PI/2) });
+        } else {
+          const startX = 50, startY = canvas.height/2, dx = (canvas.width - 100)/(maxL - 1);
+          for (let i = 0; i < L; i++) pts.push({ x: startX + dx*i, y: startY + (i%2 ? 20 : -20) });
+        }
+        ctx.lineWidth = 2; ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
+        pts.forEach((p,i) => {
+          ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill();
+          const n = pts[(i+1)%pts.length];
+          if (i < pts.length-1 || isCyclic) {
+            const idx = isCyclic ? (i+1)%pts.length : i+1;
+            if (dbPos.includes(idx)) {
+              const off = 4, ang = Math.atan2(n.y-p.y,n.x-p.x);
+              const dxo = Math.sin(ang)*off, dyo = -Math.cos(ang)*off;
+              ctx.beginPath(); ctx.moveTo(p.x+dxo,p.y+dyo); ctx.lineTo(n.x+dxo,n.y+dyo); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(p.x-dxo,p.y-dyo); ctx.lineTo(n.x-dxo,n.y-dyo); ctx.stroke();
+            } else {
+              ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(n.x,n.y); ctx.stroke();
+            }
           }
-        }
-      });
-      branches.forEach(b => {
-        let prev = pts[b.pos-1], ang = Math.PI/2, len = ((canvas.width - 100)/(maxL - 1))*0.6;
-        for (let j = 0; j < b.len; j++) {
-          const px = prev.x + Math.cos(ang)*len, py = prev.y + Math.sin(ang)*len;
-          ctx.beginPath(); ctx.moveTo(prev.x,prev.y); ctx.lineTo(px,py); ctx.stroke();
-          ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill(); prev = {x:px,y:py};
-        }
-      });
-    }
-    document.getElementById('newBtn').addEventListener('click', drawMolecule);
-    document.getElementById('checkBtn').addEventListener('click', () => {
-      const input = document.getElementById('nameInput').value;
-      const lvl = +document.getElementById('difficulty').value;
-      const res = document.getElementById('result');
-      if (normalize(input) === normalize(currentName)) {
-        stats[lvl].correct++;
-        res.textContent = 'Helyes! A molekula: ' + currentName;
-        res.className = 'success';
-      } else {
-        stats[lvl].wrong++;
-        res.textContent = 'Nem helyes. Próbáld újra! (' + currentName + ')';
-        res.className = 'error';
+        });
+        branches.forEach(b => {
+          let prev = pts[b.pos-1], ang = Math.PI/2, len = ((canvas.width - 100)/(maxL - 1))*0.6;
+          for (let j = 0; j < b.len; j++) {
+            const px = prev.x + Math.cos(ang)*len, py = prev.y + Math.sin(ang)*len;
+            ctx.beginPath(); ctx.moveTo(prev.x,prev.y); ctx.lineTo(px,py); ctx.stroke();
+            ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill(); prev = {x:px,y:py};
+          }
+        });
       }
-      updateStatsUI(lvl);
+
+      // események
+      document.getElementById('newBtn').addEventListener('click', () => {
+        document.getElementById('nameInput').value = '';
+        document.getElementById('result').textContent = '';
+        drawMolecule();
+      });
+      document.getElementById('checkBtn').addEventListener('click', () => {
+        const input = document.getElementById('nameInput').value;
+        const lvl = +document.getElementById('difficulty').value;
+        const res = document.getElementById('result');
+        if (normalize(input) === normalize(currentName)) {
+          stats[lvl].correct++;
+          res.textContent = 'Helyes! A molekula: ' + currentName;
+          res.className = 'success';
+        } else {
+          stats[lvl].wrong++;
+          res.textContent = 'Nem helyes. Próbáld újra! (' + currentName + ')';
+          res.className = 'error';
+        }
+        updateStatsUI(lvl);
+      });
+
+      // induló kép és stat
+      drawMolecule();
+      for (let i = 1; i <= 4; i++) updateStatsUI(i);
     });
-    window.onload = () => { drawMolecule(); for (let i = 1; i <= 4; i++) updateStatsUI(i); };
   </script>
 </body>
 </html>
