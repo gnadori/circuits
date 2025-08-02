@@ -33,7 +33,7 @@
 </head>
 <body>
   <header>
-    <h1>Szénhidrogén Névellenőrző</h1>
+    <h1>Szénhidrogén nevek</h1>
   </header>
   <main>
     <div class="controls">
@@ -42,14 +42,14 @@
         <option value="1">1: Nyílt lánc, elágazás nélkül</option>
         <option value="2">2: Nyílt lánc, 1 elágazás</option>
         <option value="3">3: Nyílt lánc, több elág.</option>
-        <option value="4">4: Nyílt lánc/gyűrű (≥5 atom)</option>
+        <option value="4">4: Nyílt lánc/gyűrű</option>
       </select>
       <button id="newBtn">Új molekula</button>
     </div>
     <canvas id="molecule" width="600" height="250"></canvas>
     <div class="controls">
       <label for="nameInput">Molekula neve:</label>
-      <input type="text" id="nameInput" placeholder="pl. but-3-én">
+      <input type="text" id="nameInput" placeholder="pl. 2,5-dimetil-okt-3-én">
       <button id="checkBtn">Ellenőriz</button>
     </div>
     <div id="result" aria-live="polite"></div>
