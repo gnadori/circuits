@@ -125,7 +125,7 @@
                 const weatherData = await weatherResponse.json();
                 const weatherDescription = weatherCodes[weatherData.current.weather_code] || 'szeszélyes időjárás';
 
-                const prompt = `A very sly, extremely mischievous cartoon crow, 2D animated movie style, vibrant colors. The scene is in the city of ${cityName}, showing the culture and remarkable features of the city, its landmarks. The weather is: ${weatherDescription.toLowerCase()}, the crow responds to the weather.`;
+                const prompt = `A very sly, extremely mischievous cartoon crow, 2D animated movie style. The scene is in the city of ${cityName}, showing the culture, architecture, famous landmarks and cultural characteristics. The weather is: ${weatherDescription.toLowerCase()}, the crow responds to the weather.`;
                 
                 const imageGenResponse = await fetch(CROW_GENERATOR_URL, {
                     method: 'POST',
