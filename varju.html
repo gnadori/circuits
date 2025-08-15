@@ -52,13 +52,11 @@
     </div>
     
     <script>
-        // === VÁLTOZÓK ÉS KONFIGURÁCIÓ ===
         const CROW_GENERATOR_URL = 'https://kajanvarju.nadorig.workers.dev';
-        const GOOGLE_API_KEY = 'AIzaSyA4Xr0_zlRozNciDkq25DUjmttAZixNWMo'; 
+        
+        // A GOOGLE_API_KEY konstansra már nincs szükség a JS-ben
+        // A kulcsot csak a HTML végén lévő <script> sorban kell megadni
 
-        // A 'landmarks' listát eltávolítottuk a te javaslatod alapján!
-
-        // DOM elemek
         const mapEl = document.getElementById('map');
         const detailsViewEl = document.getElementById('details-view');
         const instructionTextEl = document.getElementById('instruction-text');
@@ -73,34 +71,48 @@
 
         const weatherCodes = { 0: 'Tiszta ég', 1: 'Többnyire derült', 2: 'Részben felhős', 3: 'Borult', 45: 'Köd', 48: 'Zúzmarás köd', 51: 'Szitálás', 61: 'Gyenge eső', 63: 'Mérsékelt eső', 65: 'Erős eső', 71: 'Gyenge havazás', 75: 'Erős havazás', 80: 'Zápor', 82: 'Heves zápor', 95: 'Zivatar' };
         let map;
-
-        // === FÜGGVÉNYEK ===
+        let geocoder; // Globális változó a geokódolónak
 
         function initMap() {
             map = new google.maps.Map(mapEl, { center: { lat: 47.4979, lng: 19.0402 }, zoom: 5, mapTypeId: 'terrain', disableDefaultUI: true, zoomControl: true, draggableCursor: 'crosshair' });
+            geocoder = new google.maps.Geocoder(); // Geokódoló inicializálása
+            
             map.addListener('click', (event) => {
                 showDetailsView();
                 getWeatherAndGenerateImage(event.latLng.lat(), event.latLng.lng());
             });
         }
 
-        async function getCityName(lat, lon) {
-            const geoApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${GOOGLE_API_KEY}`;
-            const response = await fetch(geoApiUrl);
-            const data = await response.json();
-            if (data.status === 'OK' && data.results.length > 0) {
-                for (const result of data.results) {
-                    for (const component of result.address_components) {
-                        if (component.types.includes('locality')) { return component.long_name; }
+        // JAVÍTOTT FÜGGVÉNY: A Térkép beépített geokódolóját használja
+        function getCityName(lat, lon) {
+            // Promise-t adunk vissza, hogy az async/await szintaxis működjön
+            return new Promise((resolve, reject) => {
+                const latlng = { lat: lat, lng: lon };
+                geocoder.geocode({ location: latlng }, (results, status) => {
+                    if (status === "OK" && results) {
+                        if (results.length > 0) {
+                            for (const result of results) {
+                                for (const component of result.address_components) {
+                                    if (component.types.includes('locality')) {
+                                        resolve(component.long_name);
+                                        return;
+                                    }
+                                }
+                            }
+                            for (const result of results) {
+                                for (const component of result.address_components) {
+                                    if (component.types.includes('administrative_area_level_1')) {
+                                        resolve(component.long_name);
+                                        return;
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                for (const result of data.results) {
-                    for (const component of result.address_components) {
-                        if (component.types.includes('administrative_area_level_1')) { return component.long_name; }
-                    }
-                }
-            }
-            return 'Ismeretlen Hely';
+                    // Ha semmit nem talál, vagy hiba van, az alapértelmezett szöveget adja vissza
+                    resolve('Ismeretlen Hely'); 
+                });
+            });
         }
 
         async function getWeatherAndGenerateImage(lat, lon) {
@@ -108,12 +120,11 @@
                 const cityName = await getCityName(lat, lon);
                 detailsLoadingTextEl.textContent = `${cityName} elemzése...`;
 
-                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`;
+                const weatherUrl = `https://api-open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`;
                 const weatherResponse = await fetch(weatherUrl);
                 const weatherData = await weatherResponse.json();
                 const weatherDescription = weatherCodes[weatherData.current.weather_code] || 'szeszélyes időjárás';
 
-                // JAVÍTÁS: A prompt generálása a te ötleted alapján
                 const prompt = `A very sly, mischievous cartoon crow, 2D animated movie style, vibrant colors. The scene is in the city of ${cityName}, with its greatest landmark in the background. The weather is: ${weatherDescription.toLowerCase()}.`;
                 
                 const imageGenResponse = await fetch(CROW_GENERATOR_URL, {
