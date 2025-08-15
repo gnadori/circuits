@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaján Varjú Időjárás</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom, #d6e8ff, #a6c0e8);
+        }
+        .view-container {
+            height: 600px;
+            width: 100%;
+            border: 4px solid white;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        #details-view {
+            background-color: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-6">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Kaján Varjú Időjárás</h1>
+        <p id="instruction-text" class="text-lg text-gray-600 mt-2">Kattints a térképre a kezdéshez!</p>
+    </div>
+
+    <div class="w-full max-w-4xl">
+        <div id="map" class="view-container"></div>
+        <div id="details-view" class="view-container hidden flex-col items-center justify-center p-8 text-center">
+            <p id="details-loading-text" class="text-2xl text-gray-700">A varjú elemzi a helyzetet...</p>
+            <div id="details-content" class="hidden animate-fade-in">
+                <img src="" id="details-crow-image" alt="Időjárás varjú" class="max-h-64 mx-auto mb-4 rounded-lg shadow-lg">
+                <p id="details-city-name" class="text-4xl font-bold text-gray-800"></p>
+                <p id="details-temperature" class="text-6xl font-extrabold text-gray-900 drop-shadow-lg my-2"></p>
+                <p id="details-description" class="text-2xl text-gray-700 font-semibold"></p>
+                <div class="flex items-center justify-center space-x-6 text-gray-600 mt-4 text-lg">
+                    <span class="flex items-center">💧 <span id="details-humidity-value" class="ml-2"></span></span>
+                    <span class="flex items-center">💨 <span id="details-wind-value" class="ml-2"></span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const CROW_GENERATOR_URL = 'https://kajanvarju.nadorig.workers.dev';
+        
+        // A GOOGLE_API_KEY konstansra már nincs szükség a JS-ben
+        // A kulcsot csak a HTML végén lévő <script> sorban kell megadni
+
+        const mapEl = document.getElementById('map');
+        const detailsViewEl = document.getElementById('details-view');
+        const instructionTextEl = document.getElementById('instruction-text');
+        const detailsLoadingTextEl = document.getElementById('details-loading-text');
+        const detailsContentEl = document.getElementById('details-content');
+        const detailsCrowImageEl = document.getElementById('details-crow-image');
+        const detailsCityNameEl = document.getElementById('details-city-name');
+        const detailsTemperatureEl = document.getElementById('details-temperature');
+        const detailsDescriptionEl = document.getElementById('details-description');
+        const detailsHumidityEl = document.getElementById('details-humidity-value');
+        const detailsWindEl = document.getElementById('details-wind-value');
+
+        const weatherCodes = { 0: 'Tiszta ég', 1: 'Többnyire derült', 2: 'Részben felhős', 3: 'Borult', 45: 'Köd', 48: 'Zúzmarás köd', 51: 'Szitálás', 61: 'Gyenge eső', 63: 'Mérsékelt eső', 65: 'Erős eső', 71: 'Gyenge havazás', 75: 'Erős havazás', 80: 'Zápor', 82: 'Heves zápor', 95: 'Zivatar' };
+        let map;
+        let geocoder; // Globális változó a geokódolónak
+
+        function initMap() {
+            map = new google.maps.Map(mapEl, { center: { lat: 47.4979, lng: 19.0402 }, zoom: 5, mapTypeId: 'terrain', disableDefaultUI: true, zoomControl: true, draggableCursor: 'crosshair' });
+            geocoder = new google.maps.Geocoder(); // Geokódoló inicializálása
+            
+            map.addListener('click', (event) => {
+                showDetailsView();
+                getWeatherAndGenerateImage(event.latLng.lat(), event.latLng.lng());
+            });
+        }
+
+        // JAVÍTOTT FÜGGVÉNY: A Térkép beépített geokódolóját használja
+        function getCityName(lat, lon) {
+            // Promise-t adunk vissza, hogy az async/await szintaxis működjön
+            return new Promise((resolve, reject) => {
+                const latlng = { lat: lat, lng: lon };
+                geocoder.geocode({ location: latlng }, (results, status) => {
+                    if (status === "OK" && results) {
+                        if (results.length > 0) {
+                            for (const result of results) {
+                                for (const component of result.address_components) {
+                                    if (component.types.includes('locality')) {
+                                        resolve(component.long_name);
+                                        return;
+                                    }
+                                }
+                            }
+                            for (const result of results) {
+                                for (const component of result.address_components) {
+                                    if (component.types.includes('administrative_area_level_1')) {
+                                        resolve(component.long_name);
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Ha semmit nem talál, vagy hiba van, az alapértelmezett szöveget adja vissza
+                    resolve('Ismeretlen Hely'); 
+                });
+            });
+        }
+
+        async function getWeatherAndGenerateImage(lat, lon) {
+            try {
+                const cityName = await getCityName(lat, lon);
+                detailsLoadingTextEl.textContent = `${cityName} elemzése...`;
+
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`;
+                const weatherResponse = await fetch(weatherUrl);
+                const weatherData = await weatherResponse.json();
+                const weatherDescription = weatherCodes[weatherData.current.weather_code] || 'szeszélyes időjárás';
+
+                const prompt = `A very sly, extremely mischievous cartoon crow, 2D animated movie style, vibrant colors. The scene is in the city of ${cityName}, showing the culture and remarkable features of the city, its landmarks. The weather is: ${weatherDescription.toLowerCase()}, the crow responds to the weather.`;
+                
+                const imageGenResponse = await fetch(CROW_GENERATOR_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                if (!imageGenResponse.ok) throw new Error(`A varjú generálása elakadt.`);
+                const imageBlob = await imageGenResponse.blob();
+                
+                updateDetailsView(cityName, weatherData, URL.createObjectURL(imageBlob));
+
+            } catch (error) {
+                console.error('Hiba történt:', error);
+                detailsLoadingTextEl.textContent = 'Hiba történt a varjú bevetése közben. Kattints a visszatéréshez!';
+            }
+        }
+
+        function showDetailsView() {
+            mapEl.classList.add('hidden');
+            detailsViewEl.classList.remove('hidden');
+            detailsContentEl.classList.add('hidden');
+            detailsLoadingTextEl.classList.remove('hidden');
+            detailsLoadingTextEl.textContent = 'Helymeghatározás...';
+            instructionTextEl.textContent = 'Kattints a képmezőre a visszatéréshez!';
+        }
+
+        function showMapView() {
+            detailsViewEl.classList.add('hidden');
+            mapEl.classList.remove('hidden');
+            instructionTextEl.textContent = 'Kattints a térképre a kezdéshez!';
+        }
+        
+        function updateDetailsView(cityName, weatherData, imageUrl) {
+            detailsCityNameEl.textContent = cityName;
+            detailsTemperatureEl.textContent = `${Math.round(weatherData.current.temperature_2m)}°C`;
+            detailsDescriptionEl.textContent = weatherCodes[weatherData.current.weather_code] || 'szeszélyes időjárás';
+            detailsHumidityEl.textContent = `${weatherData.current.relative_humidity_2m}%`;
+            detailsWindEl.textContent = `${Math.round(weatherData.current.wind_speed_10m)} km/h`;
+            detailsCrowImageEl.src = imageUrl;
+
+            detailsLoadingTextEl.classList.add('hidden');
+            detailsContentEl.classList.remove('hidden');
+        }
+
+        detailsViewEl.addEventListener('click', showMapView);
+    </script>
+    
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4Xr0_zlRozNciDkq25DUjmttAZixNWMo&callback=initMap"></script>
+</body>
+</html>
