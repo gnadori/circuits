@@ -118,10 +118,27 @@
         const branches = [];
         for (let i = 0; i < branchCount; i++) {
           if (!sitePositions.length) break;
-          const idx = Math.floor(Math.random() * sitePositions.length);
-          const pos = sitePositions.splice(idx, 1)[0];
-          const len = Math.floor(Math.random() * Math.min(3, L-2)) + 1;
-          branches.push({pos, len});
+          
+          let pos, len, idx;
+          let isValid = false;
+          let attempts = 0; // Biztonsági kilépés a végtelen ciklusok elkerülésére
+
+          while (!isValid && sitePositions.length > 0 && attempts < 50) {
+            idx = Math.floor(Math.random() * sitePositions.length);
+            pos = sitePositions[idx]; // Csak megnézzük a pozíciót
+            len = Math.floor(Math.random() * Math.min(3, L-2)) + 1;
+
+            // Szabályok az IUPAC szerinti leghosszabb lánc biztosítására
+            const isInvalidEthyl = (len === 2 && pos === L - 1);
+            const isInvalidPropyl = (len === 3 && (pos === L - 1 || pos === L - 2));
+
+            if (!isInvalidEthyl && !isInvalidPropyl) {
+              isValid = true;
+              sitePositions.splice(idx, 1); // A pozíció érvényes, eltávolítjuk a lehetőségek közül
+              branches.push({pos, len});
+            }
+            attempts++;
+          }
         }
 
         // számozási irány IUPAC (lexicographic)
