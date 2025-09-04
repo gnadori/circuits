@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Páratartalom szimulátor a Vita kupacnak</title>
+    <title>Páratartalom a Vita kupacnak</title>
     <!-- Google Fonts import for a modern look -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,14 +36,14 @@
 
     <main class="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-10 space-y-12">
         <header class="text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-blue-600">Páratartalom és harmatpont labor 🔬💧</h1>
-            <p class="mt-2 text-slate-600">Ez az alkalmazás segít megérteni a levegő páratartalmával kapcsolatos fogalmakat. Haladj végig a három részen!</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-600">💧 Páratartalom és harmatpont labor 🔬</h1>
+            <p class="mt-2 text-slate-600">Ez az alkalmazás segít megérteni a levegő páratartalmával kapcsolatos fogalmakat. Haladj végig a három részen a teljes megértésért!</p>
         </header>
 
         <!-- ==================== 1. RÉSZ: SZIMULÁCIÓ ==================== -->
         <section id="part1" class="space-y-4">
-            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">1. A Pára szimulációja</h2>
-            <p>Figyeld meg a <span class="text-red-500 font-bold">piros (levegő)</span> és <span class="text-blue-700 font-bold">kék (víz)</span> részecskék mozgását! A szimuláció minden változtatás után 15 másodpercig fut, majd megáll, hogy megfigyelhesd az eredményt. Fontos megjegyezni, hogy ez a szimuláció csak nagy vonalakban mutatja, hogy mi történik a valóságban mindez sokkal bonyolultabb. Fogalmazz meg három állítást a szimuláció alapján, mi igaz a vízpára viselkedésére a levegőben.</p>
+            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">1. Pára a levegőben</h2>
+            <p>Figyeld meg a <span class="text-red-500 font-bold">piros (levegő)</span> és <span class="text-blue-700 font-bold">kék (víz)</span> részecskék mozgását! A szimuláció addig fut, amíg beáll az egyensúlyi állapot. Fontos megjegyezni, hogy ez a szimuláció csak nagy vonalakban mutatja, hogy mi történik a valóságban mindez sokkal bonyolultabb. Fogalmazz meg három állítást a szimuláció alapján, mi igaz a vízpára viselkedésére a levegőben. </p>
             <canvas id="simulationCanvas" class="w-full h-64 md:h-80 rounded-lg border-2 border-slate-300"></canvas>
             
             <div class="space-y-2">
@@ -66,7 +66,7 @@
 
         <!-- ==================== 2. RÉSZ: FOGALMAK ==================== -->
         <section id="part2" class="space-y-4">
-            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">2. Fogalmak és Harmatpont</h2>
+            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">2. Abszolút és relatív páratartalom, harmatpont</h2>
             <p>Itt már konkrét értékekkel dolgozunk. Állítsd be a levegő abszolút páratartalmát és hőmérsékletét, és figyeld, hogyan változik a relatív páratartalom! Ha a relatív páratartalom eléri a 100%-ot, a levegő telítetté válik: elértük a <strong>harmatpontot</strong>.</p>
             <div class="calculator relative p-6 border border-slate-200 rounded-lg space-y-4">
                 <div id="dewPointDisplay" class="absolute inset-0 bg-blue-600 bg-opacity-90 text-white flex justify-center items-center text-5xl font-extrabold rounded-lg opacity-0 invisible transition-opacity duration-500 pointer-events-none">HARMATPONT</div>
@@ -109,7 +109,7 @@
 
         <!-- ==================== 3. RÉSZ: FELADATOK ==================== -->
         <section id="part3" class="space-y-4">
-            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">3. Gyakorló Feladatok</h2>
+            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">3. Gyakorló feladatok</h2>
             <p>Teszteld a tudásodat! Kérj egy új feladatot, írd be a megoldást (egy tizedesjegy pontossággal), majd ellenőrizd!</p>
             <div class="task-container p-6 bg-slate-50 rounded-lg border border-slate-200 space-y-4">
                 <button id="newTaskBtn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Új feladat</button>
@@ -145,6 +145,12 @@ window.addEventListener('DOMContentLoaded', () => {
     let isRunning = false;
     let simulationTimeout = null;
     let isInitialized = false;
+
+    // --- Variables for stability check ---
+    let waterCountHistory = [];
+    let stabilityCheckCounter = 0;
+    const STABILITY_CHECK_INTERVAL = 60; 
+    const STABILITY_DURATION = 10; 
 
     class Particle {
         constructor(type) {
@@ -237,22 +243,43 @@ window.addEventListener('DOMContentLoaded', () => {
         drawCurrentState();
     }
     
-    function updateCurrentWaterDisplay() {
-        const currentWaterCount = particles.filter(p => p.type === 'water').length + clusters.reduce((acc, c) => acc + c.particles.length, 0);
+    function updateCurrentWaterDisplay(currentWaterCount) {
         const percentage = Math.min(100, (currentWaterCount / maxWaterParticles) * 100);
         currentWaterBar.style.width = `${percentage}%`;
     }
 
+    function getTargetWaterCount(temp) {
+        // This function defines the "ideal" number of water particles for a given temperature.
+        // It maps the -10 to 40 C range to a particle count range (e.g., 5 to 65).
+        const minParticles = 5;
+        const maxParticles = 65;
+        const normalizedTemp = (temp + 10) / 50; // Temp range to 0-1
+        return minParticles + (maxParticles - minParticles) * normalizedTemp;
+    }
+
     function handleCollisions() {
         const tempValue = parseInt(tempSlider.value);
-        // CHANGED: Using an even steeper power curve (exponent 2.0) for more dramatic effect
         const normalizedTemp = (tempValue + 10) / 50;
-        const stickiness = 1 - Math.pow(normalizedTemp, 2.0);
-        
-        // NEW: Dynamic capture radius based on temperature
-        const extraCaptureRadius = 15; // Max extra pixels for capture
-        const dynamicCaptureBonus = extraCaptureRadius * stickiness;
 
+        // --- GUIDED SIMULATION LOGIC ---
+        const currentWaterCount = particles.filter(p => p.type === 'water').length + clusters.reduce((acc, c) => acc + c.particles.length, 0);
+        const targetWaterCount = getTargetWaterCount(tempValue);
+
+        let stickiness;
+        let dynamicCaptureBonus;
+
+        if (currentWaterCount > targetWaterCount) {
+            // Too much water, force condensation
+            stickiness = 1.0; // Almost certain to stick
+            dynamicCaptureBonus = 25; // Large capture radius
+        } else {
+            // Not enough water (or just right), use physics-based model
+            stickiness = 1 - Math.pow(normalizedTemp, 2.0);
+            const extraCaptureRadius = 15;
+            dynamicCaptureBonus = extraCaptureRadius * stickiness;
+        }
+
+        // The rest of the collision logic remains, but now uses the guided `stickiness` and `dynamicCaptureBonus`
         for (let i = 0; i < particles.length; i++) {
             for (let j = i + 1; j < particles.length; j++) {
                 const p1 = particles[i];
@@ -266,7 +293,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const captureDistance = p1.radius + p2.radius + dynamicCaptureBonus;
 
                     if (distance < captureDistance && p1.cooldown === 0 && p2.cooldown === 0) {
-                        if (Math.random() < stickiness) { // Still keep a probability check for randomness
+                        if (Math.random() < stickiness) {
                             clusters.push(new Cluster(p1, p2));
                             particles.splice(j, 1);
                             particles.splice(i, 1);
@@ -293,7 +320,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     c.particles.forEach(cp => {
                        cp.x = c.x + (Math.random() - 0.5) * c.radius;
                        cp.y = c.y + (Math.random() - 0.5) * c.radius;
-                       cp.cooldown = 60; // 1 second cooldown
+                       cp.cooldown = 60;
                        particles.push(cp);
                     });
                     clusters.splice(k, 1);
@@ -336,7 +363,8 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!canvas.width || !canvas.height) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         [...particles, ...clusters].forEach(p => p.draw());
-        updateCurrentWaterDisplay();
+        const currentWaterCount = particles.filter(p => p.type === 'water').length + clusters.reduce((acc, c) => acc + c.particles.length, 0);
+        updateCurrentWaterDisplay(currentWaterCount);
     }
     
     function animate() {
@@ -355,7 +383,29 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             return true;
         });
-        updateCurrentWaterDisplay();
+        
+        const currentWaterCount = particles.filter(p => p.type === 'water').length + clusters.reduce((acc, c) => acc + c.particles.length, 0);
+        updateCurrentWaterDisplay(currentWaterCount);
+
+        // --- Stability Check Logic ---
+        stabilityCheckCounter++;
+        if (stabilityCheckCounter >= STABILITY_CHECK_INTERVAL) {
+            stabilityCheckCounter = 0;
+            waterCountHistory.push(currentWaterCount);
+            
+            if (waterCountHistory.length > STABILITY_DURATION) {
+                waterCountHistory.shift();
+            }
+
+            if (waterCountHistory.length === STABILITY_DURATION) {
+                const isStable = waterCountHistory.every(count => count === waterCountHistory[0]);
+                if (isStable) {
+                    isRunning = false;
+                    clearTimeout(simulationTimeout); 
+                }
+            }
+        }
+        
         requestAnimationFrame(animate);
     }
     
@@ -363,11 +413,15 @@ window.addEventListener('DOMContentLoaded', () => {
         clearTimeout(simulationTimeout);
         if (!isRunning) {
             isRunning = true;
+            waterCountHistory = [];
+            stabilityCheckCounter = 0;
             animate();
         }
         simulationTimeout = setTimeout(() => {
-            isRunning = false;
-        }, 15000);
+            if (isRunning) {
+                isRunning = false;
+            }
+        }, 30000); 
     }
     
     const resizeObserver = new ResizeObserver(entries => {
@@ -388,6 +442,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 
     addWaterBtn.addEventListener('click', () => {
+        const currentTotal = particles.filter(p=>p.type==='water').length + clusters.reduce((a,c)=>a+c.particles.length, 0)
+        if (currentTotal > 120) return; // Prevent adding too many particles
         for (let i = 0; i < 10; i++) {
             particles.push(new Particle('water'));
         }
