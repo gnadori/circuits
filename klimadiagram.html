@@ -117,36 +117,50 @@
                 const climateUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=1991-01-01&end_date=2020-12-31&monthly=temperature_2m_mean,precipitation_sum&timezone=auto`;
                 
                 const response = await fetch(climateUrl);
-                if (!response.ok) throw new Error('Could not fetch climate data.');
+                if (!response.ok) throw new Error('Could not fetch climate data from the server.');
                 
                 const climateData = await response.json();
                 
-                // **FIX STARTS HERE**
                 // Check if the API returned an error or if the expected data is missing
-                if (climateData.error || !climateData.monthly || !climateData.monthly.temperature_2m_mean) {
+                if (climateData.error || !climateData.monthly || !climateData.monthly.time || climateData.monthly.time.length === 0) {
                     throw new Error(climateData.reason || 'No climate data available for this location.');
                 }
-                // **FIX ENDS HERE**
 
-                // Calculate monthly averages from the 30-year data
+                // **FIX STARTS HERE: More robust monthly average calculation**
+                const monthlySums = {
+                    temps: Array(12).fill(0),
+                    precip: Array(12).fill(0),
+                    counts: Array(12).fill(0)
+                };
+
+                for (let i = 0; i < climateData.monthly.time.length; i++) {
+                    const month = new Date(climateData.monthly.time[i]).getUTCMonth(); // 0-11
+                    const temp = climateData.monthly.temperature_2m_mean[i];
+                    const precip = climateData.monthly.precipitation_sum[i];
+
+                    if (temp != null) {
+                        monthlySums.temps[month] += temp;
+                        monthlySums.counts[month]++;
+                    }
+                    if (precip != null) {
+                        monthlySums.precip[month] += precip;
+                    }
+                }
+
                 const monthlyAverages = { temps: [], precip: [] };
                 for (let i = 0; i < 12; i++) {
-                    let tempSum = 0;
-                    let precipSum = 0;
-                    for (let j = 0; j < 30; j++) {
-                        // Ensure we don't access out of bounds if data is incomplete
-                        const tempIndex = i + j * 12;
-                        const precipIndex = i + j * 12;
-                        if (climateData.monthly.temperature_2m_mean[tempIndex] != null) {
-                            tempSum += climateData.monthly.temperature_2m_mean[tempIndex];
-                        }
-                         if (climateData.monthly.precipitation_sum[precipIndex] != null) {
-                            precipSum += climateData.monthly.precipitation_sum[precipIndex];
-                        }
+                    const count = monthlySums.counts[i];
+                    if (count > 0) {
+                        monthlyAverages.temps.push(monthlySums.temps[i] / count);
+                        // Use the same count for precipitation, assuming they correspond
+                        monthlyAverages.precip.push(monthlySums.precip[i] / count);
+                    } else {
+                        // If no data for a month, push null so Chart.js shows a gap
+                        monthlyAverages.temps.push(null);
+                        monthlyAverages.precip.push(null);
                     }
-                    monthlyAverages.temps.push(tempSum / 30);
-                    monthlyAverages.precip.push(precipSum / 30);
                 }
+                // **FIX ENDS HERE**
 
                 drawClimateChart(cityName, monthlyAverages.temps, monthlyAverages.precip);
 
