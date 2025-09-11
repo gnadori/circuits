@@ -107,16 +107,16 @@
             });
         }
 
-        // **CORRECTED FUNCTION USING A DIFFERENT CLIMATE NORMAL PERIOD**
+        // **FINAL, CORRECTED FUNCTION USING THE RELIABLE CLIMATE MODEL API**
         async function getClimateDataAndDrawChart(lat, lon) {
             try {
                 const cityName = await getCityName(lat, lon);
-                detailsLoadingTextEl.textContent = `Fetching 30-year climate data for ${cityName}...`;
+                detailsLoadingTextEl.textContent = `Fetching climate model data for ${cityName}...`;
 
-                // **Using the 1981-2010 climate normal period, which may have better data coverage.**
-                const archiveUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=1981-01-01&end_date=2010-12-31&monthly=temperature_2m_mean,precipitation_sum`;
+                // **This is the correct API for global climate normals.**
+                const climateApiUrl = `https://climate-api.open-meteo.com/v1/climate?latitude=${lat}&longitude=${lon}&monthly=temperature_2m_mean,precipitation_sum`;
                 
-                const response = await fetch(archiveUrl);
+                const response = await fetch(climateApiUrl);
                 if (!response.ok) {
                     throw new Error('Could not connect to the climate data server.');
                 }
@@ -124,36 +124,16 @@
                 const climateData = await response.json();
                 console.log("API Response:", climateData); // For debugging
 
-                if (climateData.error || !climateData.monthly || !climateData.monthly.time || climateData.monthly.time.length === 0) {
-                    throw new Error(climateData.reason || 'No historical climate data found for this location.');
+                // Check if the API returned an error or if the expected data is missing
+                if (climateData.error || !climateData.monthly || !climateData.monthly.temperature_2m_mean) {
+                    throw new Error(climateData.reason || 'Climate model data not found for this location.');
                 }
                 
-                // Process the 30 years of monthly data to get averages for each month
-                const monthlySums = { temps: Array(12).fill(0), precip: Array(12).fill(0), counts: Array(12).fill(0) };
-                
-                for (let i = 0; i < climateData.monthly.time.length; i++) {
-                    const month = new Date(climateData.monthly.time[i]).getUTCMonth(); // 0-11 for Jan-Dec
-                    const temp = climateData.monthly.temperature_2m_mean[i];
-                    const precip = climateData.monthly.precipitation_sum[i];
-                    
-                    if (temp !== null) {
-                        monthlySums.temps[month] += temp;
-                        monthlySums.counts[month]++; // Only count months where we have temperature data
-                    }
-                    if (precip !== null) {
-                        monthlySums.precip[month] += precip;
-                    }
-                }
+                // The API directly provides the 12 monthly averages, so no calculation is needed.
+                const temperatures = climateData.monthly.temperature_2m_mean;
+                const precipitations = climateData.monthly.precipitation_sum;
 
-                const monthlyAverages = { temps: [], precip: [] };
-                for (let i = 0; i < 12; i++) {
-                    const count = monthlySums.counts[i];
-                    // Calculate average temperature and precipitation for each month
-                    monthlyAverages.temps.push(count > 0 ? (monthlySums.temps[i] / count) : 0);
-                    monthlyAverages.precip.push(count > 0 ? (monthlySums.precip[i] / count) : 0);
-                }
-
-                drawClimateChart(cityName, monthlyAverages.temps, monthlyAverages.precip);
+                drawClimateChart(cityName, temperatures, precipitations);
 
             } catch (error) {
                 console.error("Data processing failed:", error);
