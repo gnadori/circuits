@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Climate Diagram Generator</title>
+    <title>Klimate Diagram Generator</title>
     <!-- The browser may request a favicon.ico file. A 404 error for this file is harmless and can be ignored. -->
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -30,6 +30,13 @@
             backdrop-filter: blur(10px);
             cursor: pointer;
         }
+        .slider-container {
+             background-color: rgba(255, 255, 255, 0.6);
+             backdrop-filter: blur(10px);
+             border-radius: 1.5rem;
+             border: 4px solid white;
+             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
@@ -53,6 +60,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Sliders for Axis Control -->
+    <div class="w-full max-w-4xl mt-6 p-4 slider-container">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+            <!-- Temperature Sliders -->
+            <div>
+                <label class="font-bold">Temperature Range (°C)</label>
+                <div class="flex items-center space-x-2">
+                    <span id="temp-min-val" class="w-12 text-center">-10</span>
+                    <input type="range" id="temp-min-slider" min="-50" max="50" value="-10" class="w-full">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="temp-max-val" class="w-12 text-center">40</span>
+                    <input type="range" id="temp-max-slider" min="-50" max="50" value="40" class="w-full">
+                </div>
+            </div>
+            <!-- Precipitation Sliders -->
+            <div>
+                <label class="font-bold">Precipitation Range (mm)</label>
+                <div class="flex items-center space-x-2">
+                     <span id="precip-min-val" class="w-12 text-center">0</span>
+                    <input type="range" id="precip-min-slider" min="0" max="1000" value="0" class="w-full">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="precip-max-val" class="w-12 text-center">500</span>
+                    <input type="range" id="precip-max-slider" min="0" max="1000" value="500" class="w-full">
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script>
         // DOM Element References
@@ -63,11 +100,22 @@
         const detailsContentEl = document.getElementById('details-content');
         const detailsCityNameEl = document.getElementById('details-city-name');
         const chartCanvasEl = document.getElementById('climate-chart').getContext('2d');
+        
+        // Slider DOM elements
+        const tempMinSlider = document.getElementById('temp-min-slider');
+        const tempMaxSlider = document.getElementById('temp-max-slider');
+        const precipMinSlider = document.getElementById('precip-min-slider');
+        const precipMaxSlider = document.getElementById('precip-max-slider');
+        const tempMinVal = document.getElementById('temp-min-val');
+        const tempMaxVal = document.getElementById('temp-max-val');
+        const precipMinVal = document.getElementById('precip-min-val');
+        const precipMaxVal = document.getElementById('precip-max-val');
 
-        // Global variables for map, geocoder, and chart instance
+        // Global variables
         let map;
         let geocoder; 
         let climateChart;
+        let axisRanges = { tempMin: -10, tempMax: 40, precipMin: 0, precipMax: 500 };
 
         // Initialize the Google Map
         function initMap() {
@@ -87,74 +135,49 @@
             });
         }
 
-        // Get the city name from latitude and longitude using Google's Geocoder
         function getCityName(lat, lon) {
             return new Promise((resolve) => {
                 const latlng = { lat: lat, lng: lon };
                 geocoder.geocode({ location: latlng }, (results, status) => {
                     if (status === "OK" && results && results.length > 0) {
-                        // The first result from the geocoder is the most specific.
                         const firstResult = results[0];
                         let locationName = '';
-
-                        // We will search for address components in order of preference.
-                        const componentPreference = [
-                            'locality', // City
-                            'administrative_area_level_2', // County
-                            'administrative_area_level_1', // State
-                        ];
-
+                        const componentPreference = ['locality', 'administrative_area_level_2', 'administrative_area_level_1'];
                         for (const type of componentPreference) {
                             const component = firstResult.address_components.find(c => c.types.includes(type));
                             if (component) {
                                 locationName = component.long_name;
-                                break; // Stop once we've found the most specific name
+                                break;
                             }
                         }
-
                         if (locationName) {
                             resolve(locationName);
                             return;
                         }
                     }
-                    // If we couldn't find a name, use a default.
                     resolve('Selected Location');
                 });
             });
         }
 
-        // Fetch and process climate data to draw the chart
         async function getClimateDataAndDrawChart(lat, lon) {
             try {
                 const cityName = await getCityName(lat, lon);
                 detailsLoadingTextEl.textContent = `Fetching 30 years of daily data for ${cityName}...`;
-
-                // Fetch DAILY data for a 30-year period, using timezone=GMT to avoid regional snapping.
                 const archiveUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=1991-01-01&end_date=2020-12-31&daily=temperature_2m_mean,precipitation_sum&timezone=GMT`;
-                
                 const response = await fetch(archiveUrl);
-                if (!response.ok) {
-                    throw new Error('Could not connect to the climate data server.');
-                }
-
+                if (!response.ok) throw new Error('Could not connect to the climate data server.');
                 const climateData = await response.json();
-                console.log("API Response:", climateData); // For debugging
-
-                // Check if the API returned an error or if the expected data is missing
+                console.log("API Response:", climateData);
                 if (climateData.error || !climateData.daily || !climateData.daily.time || climateData.daily.time.length === 0) {
                     throw new Error(climateData.reason || 'No historical climate data found for this location.');
                 }
-                
                 detailsLoadingTextEl.textContent = `Calculating monthly averages...`;
-
-                // Process the daily data to calculate monthly averages.
                 const monthlySums = { temps: Array(12).fill(0), precip: Array(12).fill(0), tempCounts: Array(12).fill(0) };
-                
                 for (let i = 0; i < climateData.daily.time.length; i++) {
-                    const month = new Date(climateData.daily.time[i]).getUTCMonth(); // 0-11 for Jan-Dec
+                    const month = new Date(climateData.daily.time[i]).getUTCMonth();
                     const temp = climateData.daily.temperature_2m_mean[i];
                     const precip = climateData.daily.precipitation_sum[i];
-                    
                     if (temp !== null) {
                         monthlySums.temps[month] += temp;
                         monthlySums.tempCounts[month]++;
@@ -163,85 +186,100 @@
                         monthlySums.precip[month] += precip;
                     }
                 }
-
                 const monthlyAverages = { temps: [], precip: [] };
-                const numberOfYears = 30; // We requested data for a 30-year period
-
+                const numberOfYears = 30;
                 for (let i = 0; i < 12; i++) {
                     const tempCount = monthlySums.tempCounts[i];
-                    // Temperature is an average, so we divide the sum of daily means by the count of days.
                     monthlyAverages.temps.push(tempCount > 0 ? (monthlySums.temps[i] / tempCount) : 0);
-                    // Precipitation is a sum. We divide the total sum over 30 years by 30 to get the average for one month.
                     monthlyAverages.precip.push(monthlySums.precip[i] / numberOfYears);
                 }
-
-
                 drawClimateChart(cityName, monthlyAverages.temps, monthlyAverages.precip);
-
             } catch (error) {
                 console.error("Data processing failed:", error);
                 detailsLoadingTextEl.textContent = error.message;
             }
         }
 
-
-        // Draw the climate diagram using Chart.js
         function drawClimateChart(cityName, temperatures, precipitations) {
             detailsCityNameEl.textContent = cityName;
-            
             if (climateChart) { climateChart.destroy(); }
-
             climateChart = new Chart(chartCanvasEl, {
                 type: 'bar',
                 data: {
                     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                     datasets: [
-                        {
-                            type: 'line',
-                            label: 'Avg. Temperature (°C)',
-                            data: temperatures,
-                            borderColor: 'rgba(239, 68, 68, 1)',
-                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                            yAxisID: 'y_temp',
-                            tension: 0.2,
-                            fill: false
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Avg. Monthly Precipitation (mm)',
-                            data: precipitations,
-                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            yAxisID: 'y_precip'
-                        }
+                        { type: 'line', label: 'Avg. Temperature (°C)', data: temperatures, borderColor: 'rgba(239, 68, 68, 1)', backgroundColor: 'rgba(239, 68, 68, 0.2)', yAxisID: 'y_temp', tension: 0.2, fill: false },
+                        { type: 'bar', label: 'Avg. Monthly Precipitation (mm)', data: precipitations, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgba(59, 130, 246, 1)', yAxisID: 'y_precip' }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y_precip: {
-                            type: 'linear',
-                            position: 'left',
-                            title: { display: true, text: 'Precipitation (mm)' },
-                            min: 0,
-                            max: 500
-                        },
-                        y_temp: {
-                            type: 'linear',
-                            position: 'right',
-                            title: { display: true, text: 'Temperature (°C)' },
-                            grid: { drawOnChartArea: false },
-                            min: -10,
-                            max: 40
-                        }
+                        y_precip: { type: 'linear', position: 'left', title: { display: true, text: 'Precipitation (mm)' }, min: axisRanges.precipMin, max: axisRanges.precipMax },
+                        y_temp: { type: 'linear', position: 'right', title: { display: true, text: 'Temperature (°C)' }, grid: { drawOnChartArea: false }, min: axisRanges.tempMin, max: axisRanges.tempMax }
                     }
                 }
             });
-
             detailsLoadingTextEl.classList.add('hidden');
             detailsContentEl.classList.remove('hidden');
         }
+        
+        // Function to update chart axes based on slider values
+        function updateChartAxes() {
+            if (!climateChart) return;
+            climateChart.options.scales.y_temp.min = axisRanges.tempMin;
+            climateChart.options.scales.y_temp.max = axisRanges.tempMax;
+            climateChart.options.scales.y_precip.min = axisRanges.precipMin;
+            climateChart.options.scales.y_precip.max = axisRanges.precipMax;
+            climateChart.update();
+        }
+
+        // Event Listeners for sliders
+        tempMinSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            tempMinVal.textContent = value;
+            axisRanges.tempMin = value;
+            if (axisRanges.tempMax < value) {
+                tempMaxSlider.value = value;
+                tempMaxVal.textContent = value;
+                axisRanges.tempMax = value;
+            }
+            updateChartAxes();
+        });
+        tempMaxSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            tempMaxVal.textContent = value;
+            axisRanges.tempMax = value;
+            if (axisRanges.tempMin > value) {
+                tempMinSlider.value = value;
+                tempMinVal.textContent = value;
+                axisRanges.tempMin = value;
+            }
+            updateChartAxes();
+        });
+        precipMinSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            precipMinVal.textContent = value;
+            axisRanges.precipMin = value;
+            if (axisRanges.precipMax < value) {
+                precipMaxSlider.value = value;
+                precipMaxVal.textContent = value;
+                axisRanges.precipMax = value;
+            }
+            updateChartAxes();
+        });
+        precipMaxSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            precipMaxVal.textContent = value;
+            axisRanges.precipMax = value;
+            if (axisRanges.precipMin > value) {
+                precipMinSlider.value = value;
+                precipMinVal.textContent = value;
+                axisRanges.precipMin = value;
+            }
+            updateChartAxes();
+        });
 
         function showDetailsView() {
             mapEl.classList.add('hidden');
@@ -264,5 +302,4 @@
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4Xr0_zlRozNciDkq25DUjmttAZixNWMo&callback=initMap"></script>
 </body>
 </html>
-
 
