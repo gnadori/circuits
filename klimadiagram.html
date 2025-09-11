@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kimate Diagram Generator</title>
+    <title>Climate Diagram Generator</title>
     <!-- The browser may request a favicon.ico file. A 404 error for this file is harmless and can be ignored. -->
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -93,15 +93,27 @@
                 const latlng = { lat: lat, lng: lon };
                 geocoder.geocode({ location: latlng }, (results, status) => {
                     if (status === "OK" && results && results.length > 0) {
+                        // First, iterate through all results to find a specific city ('locality')
                         for (const result of results) {
                             for (const component of result.address_components) {
-                                if (component.types.includes('locality') || component.types.includes('administrative_area_level_1')) {
+                                if (component.types.includes('locality')) {
                                     resolve(component.long_name);
-                                    return;
+                                    return; // Found a city, exit immediately
+                                }
+                            }
+                        }
+                        
+                        // If no city was found after checking all results, fall back to a larger region
+                        for (const result of results) {
+                            for (const component of result.address_components) {
+                                if (component.types.includes('administrative_area_level_1')) {
+                                    resolve(component.long_name);
+                                    return; // Found a region, exit
                                 }
                             }
                         }
                     }
+                    // If no usable name was found at all, use a default
                     resolve('Selected Location'); 
                 });
             });
