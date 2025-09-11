@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klimate Diagram Generator</title>
+    <title>Climate Diagram Generator</title>
     <!-- The browser may request a favicon.ico file. A 404 error for this file is harmless and can be ignored. -->
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -30,7 +30,7 @@
             backdrop-filter: blur(10px);
             cursor: pointer;
         }
-        .slider-container {
+        .controls-container {
              background-color: rgba(255, 255, 255, 0.6);
              backdrop-filter: blur(10px);
              border-radius: 1.5rem;
@@ -61,31 +61,35 @@
         </div>
     </div>
 
-    <!-- Sliders for Axis Control -->
-    <div class="w-full max-w-4xl mt-6 p-4 slider-container">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-            <!-- Temperature Sliders -->
+    <!-- Input Boxes for Axis Control -->
+    <div class="w-full max-w-4xl mt-6 p-4 controls-container">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-700">
+            <!-- Temperature Inputs -->
             <div>
-                <label class="font-bold">Temperature Range (°C)</label>
-                <div class="flex items-center space-x-2">
-                    <span id="temp-min-val" class="w-12 text-center">-10</span>
-                    <input type="range" id="temp-min-slider" min="-50" max="50" value="-10" class="w-full">
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span id="temp-max-val" class="w-12 text-center">40</span>
-                    <input type="range" id="temp-max-slider" min="-50" max="50" value="40" class="w-full">
+                <label class="font-bold mb-2 block">Temperature Range (°C)</label>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-1">
+                        <label for="temp-min-input" class="text-sm">Min</label>
+                        <input type="number" id="temp-min-input" value="-10" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="flex-1">
+                        <label for="temp-max-input" class="text-sm">Max</label>
+                        <input type="number" id="temp-max-input" value="40" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
                 </div>
             </div>
-            <!-- Precipitation Sliders -->
+            <!-- Precipitation Inputs -->
             <div>
-                <label class="font-bold">Precipitation Range (mm)</label>
-                <div class="flex items-center space-x-2">
-                     <span id="precip-min-val" class="w-12 text-center">0</span>
-                    <input type="range" id="precip-min-slider" min="0" max="1000" value="0" class="w-full">
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span id="precip-max-val" class="w-12 text-center">500</span>
-                    <input type="range" id="precip-max-slider" min="0" max="1000" value="500" class="w-full">
+                <label class="font-bold mb-2 block">Precipitation Range (mm)</label>
+                <div class="flex items-center space-x-4">
+                     <div class="flex-1">
+                        <label for="precip-min-input" class="text-sm">Min</label>
+                        <input type="number" id="precip-min-input" value="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="flex-1">
+                        <label for="precip-max-input" class="text-sm">Max</label>
+                        <input type="number" id="precip-max-input" value="500" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,15 +105,11 @@
         const detailsCityNameEl = document.getElementById('details-city-name');
         const chartCanvasEl = document.getElementById('climate-chart').getContext('2d');
         
-        // Slider DOM elements
-        const tempMinSlider = document.getElementById('temp-min-slider');
-        const tempMaxSlider = document.getElementById('temp-max-slider');
-        const precipMinSlider = document.getElementById('precip-min-slider');
-        const precipMaxSlider = document.getElementById('precip-max-slider');
-        const tempMinVal = document.getElementById('temp-min-val');
-        const tempMaxVal = document.getElementById('temp-max-val');
-        const precipMinVal = document.getElementById('precip-min-val');
-        const precipMaxVal = document.getElementById('precip-max-val');
+        // Input Box DOM elements
+        const tempMinInput = document.getElementById('temp-min-input');
+        const tempMaxInput = document.getElementById('temp-max-input');
+        const precipMinInput = document.getElementById('precip-min-input');
+        const precipMaxInput = document.getElementById('precip-max-input');
 
         // Global variables
         let map;
@@ -225,7 +225,7 @@
             detailsContentEl.classList.remove('hidden');
         }
         
-        // Function to update chart axes based on slider values
+        // Function to update chart axes based on input box values
         function updateChartAxes() {
             if (!climateChart) return;
             climateChart.options.scales.y_temp.min = axisRanges.tempMin;
@@ -235,48 +235,40 @@
             climateChart.update();
         }
 
-        // Event Listeners for sliders
-        tempMinSlider.addEventListener('input', (e) => {
+        // Event Listeners for input boxes
+        tempMinInput.addEventListener('change', (e) => {
             const value = parseInt(e.target.value);
-            tempMinVal.textContent = value;
             axisRanges.tempMin = value;
             if (axisRanges.tempMax < value) {
-                tempMaxSlider.value = value;
-                tempMaxVal.textContent = value;
                 axisRanges.tempMax = value;
+                tempMaxInput.value = value;
             }
             updateChartAxes();
         });
-        tempMaxSlider.addEventListener('input', (e) => {
+        tempMaxInput.addEventListener('change', (e) => {
             const value = parseInt(e.target.value);
-            tempMaxVal.textContent = value;
             axisRanges.tempMax = value;
             if (axisRanges.tempMin > value) {
-                tempMinSlider.value = value;
-                tempMinVal.textContent = value;
                 axisRanges.tempMin = value;
+                tempMinInput.value = value;
             }
             updateChartAxes();
         });
-        precipMinSlider.addEventListener('input', (e) => {
+        precipMinInput.addEventListener('change', (e) => {
             const value = parseInt(e.target.value);
-            precipMinVal.textContent = value;
             axisRanges.precipMin = value;
             if (axisRanges.precipMax < value) {
-                precipMaxSlider.value = value;
-                precipMaxVal.textContent = value;
                 axisRanges.precipMax = value;
+                precipMaxInput.value = value;
             }
             updateChartAxes();
         });
-        precipMaxSlider.addEventListener('input', (e) => {
+        precipMaxInput.addEventListener('change', (e) => {
             const value = parseInt(e.target.value);
-            precipMaxVal.textContent = value;
             axisRanges.precipMax = value;
             if (axisRanges.precipMin > value) {
-                precipMinSlider.value = value;
-                precipMinVal.textContent = value;
                 axisRanges.precipMin = value;
+                precipMinInput.value = value;
             }
             updateChartAxes();
         });
