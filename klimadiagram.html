@@ -121,14 +121,28 @@
                 
                 const climateData = await response.json();
                 
+                // **FIX STARTS HERE**
+                // Check if the API returned an error or if the expected data is missing
+                if (climateData.error || !climateData.monthly || !climateData.monthly.temperature_2m_mean) {
+                    throw new Error(climateData.reason || 'No climate data available for this location.');
+                }
+                // **FIX ENDS HERE**
+
                 // Calculate monthly averages from the 30-year data
                 const monthlyAverages = { temps: [], precip: [] };
                 for (let i = 0; i < 12; i++) {
                     let tempSum = 0;
                     let precipSum = 0;
                     for (let j = 0; j < 30; j++) {
-                        tempSum += climateData.monthly.temperature_2m_mean[i + j * 12];
-                        precipSum += climateData.monthly.precipitation_sum[i + j * 12];
+                        // Ensure we don't access out of bounds if data is incomplete
+                        const tempIndex = i + j * 12;
+                        const precipIndex = i + j * 12;
+                        if (climateData.monthly.temperature_2m_mean[tempIndex] != null) {
+                            tempSum += climateData.monthly.temperature_2m_mean[tempIndex];
+                        }
+                         if (climateData.monthly.precipitation_sum[precipIndex] != null) {
+                            precipSum += climateData.monthly.precipitation_sum[precipIndex];
+                        }
                     }
                     monthlyAverages.temps.push(tempSum / 30);
                     monthlyAverages.precip.push(precipSum / 30);
@@ -138,7 +152,7 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                detailsLoadingTextEl.textContent = 'Failed to generate climate diagram. Click to return.';
+                detailsLoadingTextEl.textContent = error.message || 'Failed to generate climate diagram. Click to return.';
             }
         }
 
@@ -227,3 +241,4 @@
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4Xr0_zlRozNciDkq25DUjmttAZixNWMo&callback=initMap"></script>
 </body>
 </html>
+
