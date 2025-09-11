@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klima Diagram Generator</title>
+    <title>Climate Diagram Generator</title>
     <!-- The browser may request a favicon.ico file. A 404 error for this file is harmless and can be ignored. -->
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,7 +35,7 @@
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="text-center mb-6">
-        <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Klíma Diagram Generator</h1>
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Climate Diagram Generator</h1>
         <p id="instruction-text" class="text-lg text-gray-600 mt-2">Click on the map to select a location!</p>
     </div>
 
@@ -114,7 +114,8 @@
                 detailsLoadingTextEl.textContent = `Fetching climate model data for ${cityName}...`;
 
                 // **This is the correct API for global climate normals.**
-                const climateApiUrl = `https://climate-api.open-meteo.com/v1/climate?latitude=${lat}&longitude=${lon}&monthly=temperature_2m_mean,precipitation_sum`;
+                // **Added &models=ECMWF_ERA5 to explicitly request a reliable global model.**
+                const climateApiUrl = `https://climate-api.open-meteo.com/v1/climate?latitude=${lat}&longitude=${lon}&monthly=temperature_2m_mean,precipitation_sum&models=ECMWF_ERA5`;
                 
                 const response = await fetch(climateApiUrl);
                 if (!response.ok) {
@@ -217,6 +218,5 @@
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4Xr0_zlRozNciDkq25DUjmttAZixNWMo&callback=initMap"></script>
 </body>
 </html>
-
 
 
