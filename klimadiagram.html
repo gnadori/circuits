@@ -81,7 +81,6 @@
             });
             geocoder = new google.maps.Geocoder();
             
-            // Add a click listener to the map
             map.addListener('click', (event) => {
                 showDetailsView();
                 getClimateDataAndDrawChart(event.latLng.lat(), event.latLng.lng());
@@ -108,70 +107,57 @@
             });
         }
 
-        // **UPDATED FUNCTION WITH FALLBACK LOGIC**
+        // **CORRECTED FUNCTION USING THE RIGHT API AND ROBUST DATA PROCESSING**
         async function getClimateDataAndDrawChart(lat, lon) {
             try {
-                // First Attempt: Try to get high-quality historical data from the archive API
                 const cityName = await getCityName(lat, lon);
-                detailsLoadingTextEl.textContent = `Fetching historical data for ${cityName}...`;
+                detailsLoadingTextEl.textContent = `Fetching 30-year climate data for ${cityName}...`;
 
-                const archiveUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=1991-01-01&end_date=2020-12-31&monthly=temperature_2m_mean,precipitation_sum&timezone=auto`;
-                const archiveResponse = await fetch(archiveUrl);
-                if (!archiveResponse.ok) throw new Error('Could not connect to the climate archive server.');
+                // **This is the correct, functional API endpoint for historical data.**
+                const archiveUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=1991-01-01&end_date=2020-12-31&monthly=temperature_2m_mean,precipitation_sum`;
                 
-                const archiveData = await archiveResponse.json();
-                console.log("Archive API Response:", archiveData); // For debugging
-
-                if (archiveData.error || !archiveData.monthly || !archiveData.monthly.time || archiveData.monthly.time.length === 0) {
-                    throw new Error(archiveData.reason || 'No historical station data found. Trying fallback.');
+                const response = await fetch(archiveUrl);
+                if (!response.ok) {
+                    throw new Error('Could not connect to the climate data server.');
                 }
 
-                // If successful, process the historical data
+                const climateData = await response.json();
+                console.log("API Response:", climateData); // For debugging
+
+                if (climateData.error || !climateData.monthly || !climateData.monthly.time || climateData.monthly.time.length === 0) {
+                    throw new Error(climateData.reason || 'No historical climate data found for this location.');
+                }
+                
+                // Process the 30 years of monthly data to get averages for each month
                 const monthlySums = { temps: Array(12).fill(0), precip: Array(12).fill(0), counts: Array(12).fill(0) };
-                for (let i = 0; i < archiveData.monthly.time.length; i++) {
-                    const month = new Date(archiveData.monthly.time[i]).getUTCMonth(); // 0-11
-                    const temp = archiveData.monthly.temperature_2m_mean[i];
-                    const precip = archiveData.monthly.precipitation_sum[i];
-                    if (temp != null) {
+                
+                for (let i = 0; i < climateData.monthly.time.length; i++) {
+                    const month = new Date(climateData.monthly.time[i]).getUTCMonth(); // 0-11 for Jan-Dec
+                    const temp = climateData.monthly.temperature_2m_mean[i];
+                    const precip = climateData.monthly.precipitation_sum[i];
+                    
+                    if (temp !== null) {
                         monthlySums.temps[month] += temp;
-                        monthlySums.counts[month]++;
+                        monthlySums.counts[month]++; // Only count months where we have temperature data
                     }
-                    if (precip != null) { monthlySums.precip[month] += precip; }
+                    if (precip !== null) {
+                        monthlySums.precip[month] += precip;
+                    }
                 }
 
                 const monthlyAverages = { temps: [], precip: [] };
                 for (let i = 0; i < 12; i++) {
                     const count = monthlySums.counts[i];
-                    monthlyAverages.temps.push(count > 0 ? monthlySums.temps[i] / count : null);
-                    monthlyAverages.precip.push(count > 0 ? monthlySums.precip[i] / count : null);
+                    // Calculate average temperature and precipitation for each month
+                    monthlyAverages.temps.push(count > 0 ? (monthlySums.temps[i] / count) : 0);
+                    monthlyAverages.precip.push(count > 0 ? (monthlySums.precip[i] / count) : 0);
                 }
 
                 drawClimateChart(cityName, monthlyAverages.temps, monthlyAverages.precip);
 
             } catch (error) {
-                // Second Attempt (Fallback): If the first attempt fails, use the climate model API
-                console.warn("Primary API failed:", error.message);
-                detailsLoadingTextEl.textContent = `No station data found. Using climate model...`;
-                try {
-                    const cityName = await getCityName(lat, lon);
-                    const modelUrl = `https://climate-api.open-meteo.com/v1/climate?latitude=${lat}&longitude=${lon}&monthly=temperature_2m_mean,precipitation_sum`;
-                    
-                    const modelResponse = await fetch(modelUrl);
-                    if (!modelResponse.ok) throw new Error('Could not connect to the climate model server.');
-
-                    const modelData = await modelResponse.json();
-                    console.log("Fallback API Response:", modelData); // For debugging
-
-                    if (modelData.error || !modelData.monthly || !modelData.monthly.temperature_2m_mean) {
-                        throw new Error(modelData.reason || 'No climate model data is available for this location.');
-                    }
-
-                    drawClimateChart(cityName, modelData.monthly.temperature_2m_mean, modelData.monthly.precipitation_sum);
-
-                } catch (fallbackError) {
-                    console.error("Fallback API failed:", fallbackError);
-                    detailsLoadingTextEl.textContent = fallbackError.message;
-                }
+                console.error("Data processing failed:", error);
+                detailsLoadingTextEl.textContent = error.message;
             }
         }
 
