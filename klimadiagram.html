@@ -114,8 +114,8 @@
                 detailsLoadingTextEl.textContent = `Fetching climate model data for ${cityName}...`;
 
                 // **This is the correct API for global climate normals.**
-                // **Added &models=ECMWF_ERA5 to explicitly request a reliable global model.**
-                const climateApiUrl = `https://climate-api.open-meteo.com/v1/climate?latitude=${lat}&longitude=${lon}&monthly=temperature_2m_mean,precipitation_sum&models=ECMWF_ERA5`;
+                // **REMOVED the problematic '&models=ECMWF_ERA5' parameter to use the API's robust default.**
+                const climateApiUrl = `https://climate-api.open-meteo.com/v1/climate?latitude=${lat}&longitude=${lon}&monthly=temperature_2m_mean,precipitation_sum`;
                 
                 const response = await fetch(climateApiUrl);
                 if (!response.ok) {
@@ -218,5 +218,4 @@
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4Xr0_zlRozNciDkq25DUjmttAZixNWMo&callback=initMap"></script>
 </body>
 </html>
-
 
