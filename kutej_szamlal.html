@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melyik korosztályba tartozol?</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            margin-top: 50px;
+            color: #333;
+        }
+        .icon-container {
+            display: flex;
+            flex-wrap: wrap; /* Allows icons to wrap on smaller screens */
+            justify-content: center;
+            align-items: center;
+            margin-top: 50px;
+            gap: 20px; /* Adds space between icons */
+        }
+        .icon {
+            width: 180px; /* Increased size */
+            height: 180px; /* Increased size */
+            border: 4px solid #555;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column; /* To stack image and text */
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease-in-out;
+            padding: 10px;
+            box-sizing: border-box; /* Ensures padding is included in the size */
+        }
+        .icon img {
+            width: 60%;
+            height: 60%;
+            filter: invert(1);
+        }
+        .icon-label {
+            margin-top: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .icon:hover {
+            transform: scale(1.05);
+        }
+        .icon.clicked {
+            /* Visual feedback on click */
+            box-shadow: 0 0 25px 5px yellow;
+            transform: scale(1.1);
+        }
+        
+        /* New Color Palette */
+        #also-tagozat { background-color: #2a9d8f; }
+        #felso-tagozat { background-color: #e9c46a; }
+        #kozepiskola { background-color: #f4a261; }
+        #felnott { background-color: #e76f51; }
+        #akg { background-color: #264653; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Melyik korosztályba tartozol?</h1>
+
+    <div class="icon-container">
+        <div class="icon" id="also-tagozat" onclick="recordVote('Alsó tagozat', this)">
+            <img src="https://img.icons8.com/ios-filled/100/000000/kid.png" alt="Alsó tagozat">
+            <span class="icon-label">Alsó tagozat</span>
+        </div>
+        <div class="icon" id="felso-tagozat" onclick="recordVote('Felső tagozat', this)">
+            <img src="https://img.icons8.com/material-sharp/96/000000/student-male.png" alt="Felső tagozat">
+            <span class="icon-label">Felső tagozat</span>
+        </div>
+        <div class="icon" id="kozepiskola" onclick="recordVote('Középiskola', this)">
+            <img src="https://img.icons8.com/ios-filled/100/000000/graduation-cap.png" alt="Középiskola">
+            <span class="icon-label">Középiskola</span>
+        </div>
+        <div class="icon" id="felnott" onclick="recordVote('Felnőtt', this)">
+            <img src="https://img.icons8.com/ios-glyphs/90/000000/user-male-circle.png" alt="Felnőtt">
+            <span class="icon-label">Felnőtt</span>
+        </div>
+        <div class="icon" id="akg" onclick="recordVote('AKG-s vagyok', this)">
+            <img src="https://img.icons8.com/ios-filled/100/000000/building.png" alt="AKG">
+            <span class="icon-label">AKG-s vagyok</span>
+        </div>
+    </div>
+
+    <p style="margin-top: 50px; color: #555; font-style: italic;">
+        Press <strong>Alt + Ctrl + T</strong> to download the data as a CSV file.
+    </p>
+
+
+    <script>
+        // Initialize tally data with new categories
+        let tally = {
+            'Alsó tagozat': 0,
+            'Felső tagozat': 0,
+            'Középiskola': 0,
+            'Felnőtt': 0,
+            'AKG-s vagyok': 0
+        };
+
+        // Function to record a vote and provide visual feedback
+        function recordVote(category, element) {
+            tally[category]++;
+            
+            // Add a class for visual feedback
+            element.classList.add('clicked');
+            
+            // Remove the class after a short delay
+            setTimeout(() => {
+                element.classList.remove('clicked');
+            }, 300); // 300 milliseconds
+        }
+
+        // Function to download the data as a CSV file
+        function downloadCSV() {
+            // Create CSV header
+            let csvRows = ["Korosztály,Szavazatok száma"];
+
+            // Loop through the tally object to create data rows
+            for (const key in tally) {
+                csvRows.push(`${key},${tally[key]}`);
+            }
+            
+            const csvContent = csvRows.join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            // --- Generate filename with timestamp ---
+            const date = new Date();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const filename = `korosztaly_adatok_${hours}${minutes}.csv`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Add an event listener for the download shortcut
+        document.addEventListener('keydown', function(event) {
+            if (event.altKey && event.ctrlKey && event.key.toLowerCase() === 't') {
+                event.preventDefault();
+                downloadCSV();
+            }
+        });
+    </script>
+
+</body>
+</html>
