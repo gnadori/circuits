@@ -18,7 +18,7 @@
         .impacts { grid-template-columns: repeat(3, 1fr); }
         .control-item, .reservoir-item, .impact-item { background: #ecf0f1; padding: 15px; border-radius: 8px; text-align: center; }
         .reservoir-item { background: #e9f5ff; }
-        .reservoir-item.depleted { background: #fadbd8; }
+        .reservoir-item.depleted { background: #fadbd8; color: #78281f; }
         .impact-item { background: #fdf3e6; }
         .impact-item .impact-value { font-weight: bold; font-size: 1.2em; margin-top: 5px; }
         .impact-item .impact-value.positive { color: #27ae60; } /* Green for reforestation */
@@ -84,13 +84,15 @@
 <script>
     // --- MODEL CONSTANTS ---
     const LAND_CARRYING_CAPACITY = 3000;
-    const PER_CAPITA_EMISSIONS = { burning: 1.5, cement: 0.2, land_use: 0.2 };
+    const LAND_GROWTH_RATE = 0.005; // CORRECTED: Reduced from 0.01 for more realistic land uptake
+    const OCEAN_UPTAKE_FACTOR = 0.02; // CORRECTED: Reduced from 0.04 for more realistic ocean uptake
+    const PER_CAPITA_EMISSIONS = { burning: 1.2, cement: 0.15, land_use: 0.1 };
     const INITIAL_VALUES = {
         atmosphere: 850,
         land: 2500,
         oceans: 38000,
         rock: 60000000,
-        fossil: 10000 // Finite fossil fuel reserves
+        fossil: 10000
     };
 
     // --- STATE VARIABLES ---
@@ -157,29 +159,25 @@
     function runSimulationStep() {
         year++;
         
-        // --- Depletion Mechanic ---
         let actualBurning = derivedImpacts.burning;
         if (reservoirs.fossil <= 0) {
-            actualBurning = 0; // Stop burning if reserves are depleted
+            actualBurning = 0;
             reservoirs.fossil = 0;
         } else if (reservoirs.fossil < actualBurning) {
-            actualBurning = reservoirs.fossil; // Burn only what's left
+            actualBurning = reservoirs.fossil;
         }
         
-        // Land dynamics
         const growthPotential = 1 - (reservoirs.land / LAND_CARRYING_CAPACITY);
-        const naturalNetUptake = 0.01 * reservoirs.land * growthPotential;
+        const naturalNetUptake = LAND_GROWTH_RATE * reservoirs.land * growthPotential;
         const landChange = naturalNetUptake - derivedImpacts.deforestation;
 
-        // Other fluxes
-        const oceanUptake = (reservoirs.atmosphere - 600) * 0.04;
+        const oceanUptake = (reservoirs.atmosphere - 600) * OCEAN_UPTAKE_FACTOR;
         const atmosphereChange = actualBurning + derivedImpacts.cement - naturalNetUptake + derivedImpacts.deforestation - oceanUptake;
         
-        // Update reservoirs
         reservoirs.fossil -= actualBurning;
         reservoirs.atmosphere += atmosphereChange;
         reservoirs.land += landChange;
-        reservoirs.oceans += oceanUptake - 0.2; // Includes 0.2 GtC sedimentation
+        reservoirs.oceans += oceanUptake - 0.2;
         reservoirs.rock += 0.2;
 
         updateDisplays();
@@ -228,8 +226,8 @@
         if (simulationInterval) toggleSimulation();
         year = 0;
         reservoirs = { ...INITIAL_VALUES };
-        populationSlider.value = 8;
-        ecoSlider.value = 20;
+        populationSlider.value = 11.6; // Set to your tested value
+        ecoSlider.value = 2; // Set to your tested value
         populationValEl.textContent = parseFloat(populationSlider.value).toFixed(1);
         ecoValEl.textContent = ecoSlider.value;
         carbonChart.data.labels = [];
