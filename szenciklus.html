@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Carbon Cycle Model</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        #app-container {
+            width: 90%;
+            max-width: 800px;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .controls, .reservoirs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .control-item, .reservoir-item {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .reservoir-item {
+             background: #e9f5ff;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3498db;
+            margin-top: 5px;
+        }
+        .year-display {
+            font-size: 1.2em;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        .buttons {
+            margin-top: 25px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+        #start-stop-btn {
+            background-color: #27ae60;
+            color: white;
+        }
+        #start-stop-btn.running {
+            background-color: #e74c3c;
+        }
+        #reset-btn {
+            background-color: #95a5a6;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <h1>Interactive Carbon Cycle Model</h1>
+    <div class="year-display">Year: <span id="year">0</span></div>
+
+    <div class="reservoirs">
+        <div class="reservoir-item">
+            <label>Atmosphere (GtC)</label>
+            <div class="value" id="atmosphere-val">850</div>
+        </div>
+        <div class="reservoir-item">
+            <label>Land (Plants & Soil) (GtC)</label>
+            <div class="value" id="land-val">2500</div>
+        </div>
+        <div class="reservoir-item">
+            <label>Oceans (GtC)</label>
+            <div class="value" id="oceans-val">38000</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control-item">
+            <label>Fossil Fuel Burning (GtC/yr)</label>
+            <input type="range" id="burning-slider" min="0" max="20" value="10" step="0.5">
+            <span id="burning-val">10</span> GtC/yr
+        </div>
+        <div class="control-item">
+            <label>Deforestation Rate</label>
+            <input type="range" id="deforestation-slider" min="0" max="100" value="10" step="1">
+            <span id="deforestation-val">10</span> %
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button id="start-stop-btn">Start Simulation</button>
+        <button id="reset-btn">Reset</button>
+    </div>
+</div>
+
+<script>
+    // Initial reservoir values in Gigatons of Carbon (GtC)
+    const INITIAL_VALUES = {
+        atmosphere: 850,
+        land: 2500,
+        oceans: 38000
+    };
+
+    let reservoirs = { ...INITIAL_VALUES };
+    let year = 0;
+    let simulationInterval = null;
+
+    // DOM Elements
+    const yearEl = document.getElementById('year');
+    const atmosphereEl = document.getElementById('atmosphere-val');
+    const landEl = document.getElementById('land-val');
+    const oceansEl = document.getElementById('oceans-val');
+    const burningSlider = document.getElementById('burning-slider');
+    const burningValEl = document.getElementById('burning-val');
+    const deforestationSlider = document.getElementById('deforestation-slider');
+    const deforestationValEl = document.getElementById('deforestation-val');
+    const startStopBtn = document.getElementById('start-stop-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    // Update display from sliders
+    burningSlider.oninput = () => { burningValEl.textContent = burningSlider.value; };
+    deforestationSlider.oninput = () => { deforestationValEl.textContent = deforestationSlider.value; };
+
+    function updateDisplays() {
+        yearEl.textContent = year;
+        atmosphereEl.textContent = reservoirs.atmosphere.toFixed(1);
+        landEl.textContent = reservoirs.land.toFixed(1);
+        oceansEl.textContent = reservoirs.oceans.toFixed(1);
+    }
+
+    function runSimulationStep() {
+        year++;
+
+        // Get user-controlled values
+        const burning = parseFloat(burningSlider.value);
+        const deforestationFactor = 1 - (parseFloat(deforestationSlider.value) / 100);
+
+        // --- Define the fluxes (GtC per year) ---
+
+        // Photosynthesis (base rate adjusted by deforestation)
+        const basePhotosynthesis = 120;
+        const photosynthesis = basePhotosynthesis * deforestationFactor;
+
+        // Respiration and Decomposition from land (a percentage of the land carbon pool)
+        const respiration = 118;
+
+        // Ocean uptake (proportional to how much 'extra' CO2 is in the atmosphere)
+        const preIndustrialAtmosphere = 600;
+        const oceanUptake = (reservoirs.atmosphere - preIndustrialAtmosphere) * 0.05;
+
+        // --- Calculate changes in reservoirs ---
+        const landChange = photosynthesis - respiration;
+        const atmosphereChange = burning + respiration - photosynthesis - oceanUptake;
+        const oceansChange = oceanUptake;
+
+        // --- Update reservoir values ---
+        reservoirs.atmosphere += atmosphereChange;
+        reservoirs.land += landChange;
+        reservoirs.oceans += oceansChange;
+
+        updateDisplays();
+    }
+
+    function toggleSimulation() {
+        if (simulationInterval) {
+            clearInterval(simulationInterval);
+            simulationInterval = null;
+            startStopBtn.textContent = 'Start Simulation';
+            startStopBtn.classList.remove('running');
+        } else {
+            simulationInterval = setInterval(runSimulationStep, 200); // Update 5 times per second
+            startStopBtn.textContent = 'Stop Simulation';
+            startStopBtn.classList.add('running');
+        }
+    }
+
+    function resetSimulation() {
+        if (simulationInterval) {
+            toggleSimulation();
+        }
+        year = 0;
+        reservoirs = { ...INITIAL_VALUES };
+        burningSlider.value = 10;
+        deforestationSlider.value = 10;
+        burningValEl.textContent = burningSlider.value;
+        deforestationValEl.textContent = deforestationSlider.value;
+        updateDisplays();
+    }
+
+    // Event Listeners
+    startStopBtn.addEventListener('click', toggleSimulation);
+    resetBtn.addEventListener('click', resetSimulation);
+
+    // Initialize display on page load
+    updateDisplays();
+</script>
+
+</body>
+</html>
