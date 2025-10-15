@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Interactive Carbon Cycle Model</title>
+    <title>Final Interactive Carbon Cycle 1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; background-color: #f0f4f8; color: #333; box-sizing: border-box; }
-        #app-container { width: 95%; max-width: 1100px; background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        #app-container { width: 95%; max-width: 1200px; background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1, h2 { text-align: center; color: #2c3e50; margin-top: 0; }
         h2 { font-size: 1.1em; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;}
         .main-layout { display: flex; flex-wrap: wrap; gap: 25px; }
-        .left-panel { flex: 2; min-width: 400px; }
-        .right-panel { flex: 3; min-width: 500px; min-height: 450px;}
-        .controls, .reservoirs, .impacts { display: grid; gap: 15px; margin-top: 20px; }
+        .left-panel { flex: 3; min-width: 450px; }
+        .right-panel { flex: 4; min-width: 550px; min-height: 500px;}
+        .controls, .reservoirs, .impacts, .graph-options { display: grid; gap: 15px; margin-top: 20px; }
         .reservoirs { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
         .impacts { grid-template-columns: repeat(3, 1fr); }
+        .graph-options { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); background: #f9f9f9; padding: 15px; border-radius: 8px; }
+        .toggle-item { display: flex; align-items: center; gap: 8px; }
         .control-item, .reservoir-item, .impact-item { background: #ecf0f1; padding: 15px; border-radius: 8px; text-align: center; }
         .reservoir-item { background: #e9f5ff; }
         .reservoir-item.depleted { background: #fadbd8; color: #78281f; }
         .impact-item { background: #fdf3e6; }
         .impact-item .impact-value { font-weight: bold; font-size: 1.2em; margin-top: 5px; }
-        .impact-item .impact-value.positive { color: #27ae60; } /* Green for reforestation */
+        .impact-item .impact-value.positive { color: #27ae60; }
         label { display: block; margin-bottom: 10px; font-weight: bold; }
+        .toggle-item label { margin: 0; }
         input[type="range"] { width: 100%; }
         .value { font-size: 1.5em; font-weight: bold; color: #3498db; margin-top: 5px; }
         .year-display { font-size: 1.2em; margin-bottom: 20px; font-weight: 500; text-align: center; }
@@ -36,7 +39,7 @@
 <body>
 
 <div id="app-container">
-    <h1>Comprehensive Carbon Cycle Model</h1>
+    <h1>Final Interactive Carbon Cycle Model</h1>
     <div class="main-layout">
         <div class="left-panel">
             <div class="year-display">Year: <span id="year">0</span></div>
@@ -70,6 +73,14 @@
                 <div class="impact-item"><label>Cement Production</label><div class="impact-value" id="impact-cement">0</div></div>
             </div>
 
+            <h2>Graph Options</h2>
+            <div class="graph-options">
+                <div class="toggle-item"><input type="checkbox" id="toggle-atmosphere" checked><label for="toggle-atmosphere">Atmosphere</label></div>
+                <div class="toggle-item"><input type="checkbox" id="toggle-land"><label for="toggle-land">Land</label></div>
+                <div class="toggle-item"><input type="checkbox" id="toggle-oceans"><label for="toggle-oceans">Oceans</label></div>
+                <div class="toggle-item"><input type="checkbox" id="toggle-fossil" checked><label for="toggle-fossil">Fossil Reserves</label></div>
+            </div>
+
             <div class="buttons">
                 <button id="start-stop-btn">Start Simulation</button>
                 <button id="reset-btn">Reset</button>
@@ -82,90 +93,84 @@
 </div>
 
 <script>
-    // --- MODEL CONSTANTS ---
     const LAND_CARRYING_CAPACITY = 3000;
-    const LAND_GROWTH_RATE = 0.005; // CORRECTED: Reduced from 0.01 for more realistic land uptake
-    const OCEAN_UPTAKE_FACTOR = 0.02; // CORRECTED: Reduced from 0.04 for more realistic ocean uptake
+    const LAND_GROWTH_RATE = 0.005;
+    const OCEAN_UPTAKE_FACTOR = 0.02;
     const PER_CAPITA_EMISSIONS = { burning: 1.2, cement: 0.15, land_use: 0.1 };
-    const INITIAL_VALUES = {
-        atmosphere: 850,
-        land: 2500,
-        oceans: 38000,
-        rock: 60000000,
-        fossil: 10000
-    };
+    const INITIAL_VALUES = { atmosphere: 850, land: 2500, oceans: 38000, rock: 60000000, fossil: 10000 };
 
-    // --- STATE VARIABLES ---
     let reservoirs = { ...INITIAL_VALUES };
     let year = 0;
     let simulationInterval = null;
     let derivedImpacts = { burning: 0, deforestation: 0, cement: 0 };
 
-    // --- DOM ELEMENTS ---
-    const yearEl = document.getElementById('year');
-    const atmosphereEl = document.getElementById('atmosphere-val');
-    const landEl = document.getElementById('land-val');
-    const oceansEl = document.getElementById('oceans-val');
-    const rockEl = document.getElementById('rock-val');
-    const fossilEl = document.getElementById('fossil-val');
-    const fossilResItem = document.getElementById('fossil-res-item');
-    const populationSlider = document.getElementById('population-slider');
-    const populationValEl = document.getElementById('population-val');
-    const ecoSlider = document.getElementById('eco-slider');
-    const ecoValEl = document.getElementById('eco-val');
-    const startStopBtn = document.getElementById('start-stop-btn');
-    const resetBtn = document.getElementById('reset-btn');
-    const impactBurningEl = document.getElementById('impact-burning');
-    const impactDeforestationEl = document.getElementById('impact-deforestation');
-    const impactCementEl = document.getElementById('impact-cement');
+    // --- DOM ELEMENT CACHING ---
+    const DOMElements = {
+        year: document.getElementById('year'),
+        atmosphere: document.getElementById('atmosphere-val'),
+        land: document.getElementById('land-val'),
+        oceans: document.getElementById('oceans-val'),
+        rock: document.getElementById('rock-val'),
+        fossil: document.getElementById('fossil-val'),
+        fossilResItem: document.getElementById('fossil-res-item'),
+        populationSlider: document.getElementById('population-slider'),
+        populationVal: document.getElementById('population-val'),
+        ecoSlider: document.getElementById('eco-slider'),
+        ecoVal: document.getElementById('eco-val'),
+        startStopBtn: document.getElementById('start-stop-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+        impactBurning: document.getElementById('impact-burning'),
+        impactDeforestation: document.getElementById('impact-deforestation'),
+        impactCement: document.getElementById('impact-cement'),
+        toggle: {
+            atmosphere: document.getElementById('toggle-atmosphere'),
+            land: document.getElementById('toggle-land'),
+            oceans: document.getElementById('toggle-oceans'),
+            fossil: document.getElementById('toggle-fossil')
+        }
+    };
 
     // --- CHART SETUP ---
     const ctx = document.getElementById('carbonChart').getContext('2d');
     const carbonChart = new Chart(ctx, {
         type: 'line',
         data: { labels: [], datasets: [
-            { label: 'Atmosphere', data: [], borderColor: '#e74c3c', fill: false, tension: 0.1 },
-            { label: 'Fossil Reserves', data: [], borderColor: '#34495e', fill: false, tension: 0.1, borderDash: [5, 5] }
+            { label: 'Atmosphere', data: [], borderColor: '#e74c3c', hidden: false, tension: 0.1 },
+            { label: 'Land', data: [], borderColor: '#2ecc71', hidden: true, tension: 0.1 },
+            { label: 'Oceans', data: [], borderColor: '#3498db', hidden: true, tension: 0.1 },
+            { label: 'Fossil Reserves', data: [], borderColor: '#34495e', hidden: false, tension: 0.1, borderDash: [5, 5] }
         ]},
-        options: { responsive: true, maintainAspectRatio: false, scales: {
-            x: { title: { display: true, text: 'Year' } },
-            y: { title: { display: true, text: 'Gigatons of Carbon (GtC)' } }
-        }}
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                x: { title: { display: true, text: 'Year' } },
+                y: { type: 'logarithmic', title: { display: true, text: 'Gigatons of Carbon (GtC)' } }
+            }
+        }
     });
 
     // --- FUNCTIONS ---
     function calculateDerivedImpacts() {
-        const population = parseFloat(populationSlider.value);
-        const ecoFactor = parseFloat(ecoSlider.value) / 100;
+        const population = parseFloat(DOMElements.populationSlider.value);
+        const ecoFactor = parseFloat(DOMElements.ecoSlider.value) / 100;
 
-        const baseBurning = population * PER_CAPITA_EMISSIONS.burning;
-        const baseCement = population * PER_CAPITA_EMISSIONS.cement;
-        const baseLandUse = population * PER_CAPITA_EMISSIONS.land_use;
-
-        derivedImpacts.burning = baseBurning * (1 - ecoFactor);
-        derivedImpacts.cement = baseCement * (1 - (ecoFactor * 0.9));
-        derivedImpacts.deforestation = baseLandUse * (1 - (ecoFactor * 1.5));
+        derivedImpacts.burning = population * PER_CAPITA_EMISSIONS.burning * (1 - ecoFactor);
+        derivedImpacts.cement = population * PER_CAPITA_EMISSIONS.cement * (1 - (ecoFactor * 0.9));
+        derivedImpacts.deforestation = population * PER_CAPITA_EMISSIONS.land_use * (1 - (ecoFactor * 1.5));
         
         updateImpactDisplays();
     }
     
     function updateImpactDisplays() {
-        impactBurningEl.textContent = `${derivedImpacts.burning.toFixed(1)} GtC/yr`;
-        impactCementEl.textContent = `${derivedImpacts.cement.toFixed(1)} GtC/yr`;
-        impactDeforestationEl.textContent = `${derivedImpacts.deforestation.toFixed(1)} GtC/yr`;
-        impactDeforestationEl.classList.toggle('positive', derivedImpacts.deforestation < 0);
+        DOMElements.impactBurning.textContent = `${derivedImpacts.burning.toFixed(1)} GtC/yr`;
+        DOMElements.impactCement.textContent = `${derivedImpacts.cement.toFixed(1)} GtC/yr`;
+        DOMElements.impactDeforestation.textContent = `${derivedImpacts.deforestation.toFixed(1)} GtC/yr`;
+        DOMElements.impactDeforestation.classList.toggle('positive', derivedImpacts.deforestation < 0);
     }
 
     function runSimulationStep() {
         year++;
-        
-        let actualBurning = derivedImpacts.burning;
-        if (reservoirs.fossil <= 0) {
-            actualBurning = 0;
-            reservoirs.fossil = 0;
-        } else if (reservoirs.fossil < actualBurning) {
-            actualBurning = reservoirs.fossil;
-        }
+        let actualBurning = Math.max(0, Math.min(reservoirs.fossil, derivedImpacts.burning));
         
         const growthPotential = 1 - (reservoirs.land / LAND_CARRYING_CAPACITY);
         const naturalNetUptake = LAND_GROWTH_RATE * reservoirs.land * growthPotential;
@@ -185,20 +190,22 @@
     }
     
     function updateDisplays() {
-        yearEl.textContent = year;
-        atmosphereEl.textContent = reservoirs.atmosphere.toFixed(0);
-        landEl.textContent = reservoirs.land.toFixed(0);
-        oceansEl.textContent = reservoirs.oceans.toFixed(0);
-        rockEl.textContent = (reservoirs.rock / 1000000).toFixed(1) + 'M';
-        fossilEl.textContent = reservoirs.fossil.toFixed(0);
-        fossilResItem.classList.toggle('depleted', reservoirs.fossil <= 0);
+        DOMElements.year.textContent = year;
+        DOMElements.atmosphere.textContent = reservoirs.atmosphere.toFixed(0);
+        DOMElements.land.textContent = reservoirs.land.toFixed(0);
+        DOMElements.oceans.textContent = reservoirs.oceans.toFixed(0);
+        DOMElements.rock.textContent = (reservoirs.rock / 1000000).toFixed(1) + 'M';
+        DOMElements.fossil.textContent = reservoirs.fossil.toFixed(0);
+        DOMElements.fossilResItem.classList.toggle('depleted', reservoirs.fossil <= 0);
     }
 
     function updateChart() {
         if (year % 5 === 0) {
             carbonChart.data.labels.push(year);
             carbonChart.data.datasets[0].data.push(reservoirs.atmosphere);
-            carbonChart.data.datasets[1].data.push(reservoirs.fossil);
+            carbonChart.data.datasets[1].data.push(reservoirs.land);
+            carbonChart.data.datasets[2].data.push(reservoirs.oceans);
+            carbonChart.data.datasets[3].data.push(reservoirs.fossil);
             
             if (carbonChart.data.labels.length > 100) {
                 carbonChart.data.labels.shift();
@@ -212,13 +219,13 @@
         if (simulationInterval) {
             clearInterval(simulationInterval);
             simulationInterval = null;
-            startStopBtn.textContent = 'Start Simulation';
-            startStopBtn.classList.remove('running');
+            DOMElements.startStopBtn.textContent = 'Start Simulation';
+            DOMElements.startStopBtn.classList.remove('running');
         } else {
             calculateDerivedImpacts();
             simulationInterval = setInterval(runSimulationStep, 100);
-            startStopBtn.textContent = 'Stop Simulation';
-            startStopBtn.classList.add('running');
+            DOMElements.startStopBtn.textContent = 'Stop Simulation';
+            DOMElements.startStopBtn.classList.add('running');
         }
     }
 
@@ -226,28 +233,45 @@
         if (simulationInterval) toggleSimulation();
         year = 0;
         reservoirs = { ...INITIAL_VALUES };
-        populationSlider.value = 11.6; // Set to your tested value
-        ecoSlider.value = 2; // Set to your tested value
-        populationValEl.textContent = parseFloat(populationSlider.value).toFixed(1);
-        ecoValEl.textContent = ecoSlider.value;
+        DOMElements.populationSlider.value = 8;
+        DOMElements.ecoSlider.value = 20;
+        DOMElements.populationVal.textContent = parseFloat(DOMElements.populationSlider.value).toFixed(1);
+        DOMElements.ecoVal.textContent = DOMElements.ecoSlider.value;
+        
+        DOMElements.toggle.atmosphere.checked = true;
+        DOMElements.toggle.land.checked = false;
+        DOMElements.toggle.oceans.checked = false;
+        DOMElements.toggle.fossil.checked = true;
+        
         carbonChart.data.labels = [];
-        carbonChart.data.datasets.forEach(dataset => dataset.data = []);
+        carbonChart.data.datasets.forEach((dataset, index) => {
+            dataset.data = [];
+            dataset.hidden = !document.getElementById(`toggle-${dataset.label.toLowerCase().split(' ')[0]}`).checked;
+        });
+
         carbonChart.update();
         calculateDerivedImpacts();
         updateDisplays();
     }
 
     // --- EVENT LISTENERS ---
-    populationSlider.oninput = () => {
-        populationValEl.textContent = parseFloat(populationSlider.value).toFixed(1);
+    DOMElements.populationSlider.oninput = () => {
+        DOMElements.populationVal.textContent = parseFloat(DOMElements.populationSlider.value).toFixed(1);
         if (!simulationInterval) calculateDerivedImpacts();
     };
-    ecoSlider.oninput = () => {
-        ecoValEl.textContent = ecoSlider.value;
+    DOMElements.ecoSlider.oninput = () => {
+        DOMElements.ecoVal.textContent = DOMElements.ecoSlider.value;
         if (!simulationInterval) calculateDerivedImpacts();
     };
-    startStopBtn.addEventListener('click', toggleSimulation);
-    resetBtn.addEventListener('click', resetSimulation);
+    DOMElements.startStopBtn.addEventListener('click', toggleSimulation);
+    DOMElements.resetBtn.addEventListener('click', resetSimulation);
+
+    Object.keys(DOMElements.toggle).forEach((key, index) => {
+        DOMElements.toggle[key].addEventListener('change', (e) => {
+            carbonChart.data.datasets[index].hidden = !e.target.checked;
+            carbonChart.update();
+        });
+    });
 
     // --- INITIALIZE ---
     resetSimulation();
