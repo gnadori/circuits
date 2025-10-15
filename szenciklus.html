@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hu">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Final Interactive Carbon 2</title>
+    <title>Végleges Interaktív 3</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; background-color: #f0f4f8; color: #333; box-sizing: border-box; }
@@ -39,51 +39,51 @@
 <body>
 
 <div id="app-container">
-    <h1>Final Interactive Carbon Cycle Model</h1>
+    <h1>Végleges Interaktív Karbonciklus Modell</h1>
     <div class="main-layout">
         <div class="left-panel">
-            <div class="year-display">Year: <span id="year">0</span></div>
-            <h2>Carbon Reservoirs (GtC)</h2>
+            <div class="year-display">Év: <span id="year">0</span></div>
+            <h2>Szén-rezervoárok (GtC)</h2>
             <div class="reservoirs">
-                <div class="reservoir-item"><label>Atmosphere</label><div class="value" id="atmosphere-val">0</div></div>
-                <div class="reservoir-item"><label>Land</label><div class="value" id="land-val">0</div></div>
-                <div class="reservoir-item" id="fossil-res-item"><label>Fossil Reserves</label><div class="value" id="fossil-val">0</div></div>
-                <div class="reservoir-item"><label>Oceans</label><div class="value" id="oceans-val">0</div></div>
-                <div class="reservoir-item"><label>Sediment/Rock</label><div class="value" id="rock-val">0</div></div>
+                <div class="reservoir-item"><label>Légkör</label><div class="value" id="atmosphere-val">0</div></div>
+                <div class="reservoir-item"><label>Szárazföld</label><div class="value" id="land-val">0</div></div>
+                <div class="reservoir-item" id="fossil-res-item"><label>Fosszilis Tartalék</label><div class="value" id="fossil-val">0</div></div>
+                <div class="reservoir-item"><label>Óceánok</label><div class="value" id="oceans-val">0</div></div>
+                <div class="reservoir-item"><label>Üledék/Kőzet</label><div class="value" id="rock-val">0</div></div>
             </div>
             
-            <h2>Societal Drivers</h2>
+            <h2>Társadalmi Tényezők</h2>
             <div class="controls">
                  <div class="control-item">
-                    <label>Earth's Population</label>
+                    <label>Föld Népesedése</label>
                     <input type="range" id="population-slider" min="1" max="15" value="8" step="0.1">
-                    <span id="population-val">8.0</span> Billion
+                    <span id="population-val">8.0</span> Milliárd
                 </div>
                 <div class="control-item">
-                    <label>Eco-Consciousness</label>
+                    <label>Öko-tudatosság</label>
                     <input type="range" id="eco-slider" min="0" max="100" value="20" step="1">
                     <span id="eco-val">20</span> %
                 </div>
             </div>
             
-            <h2>Calculated Annual Impact</h2>
+            <h2>Kalkulált Éves Hatás</h2>
             <div class="impacts">
-                <div class="impact-item"><label>Fossil Fuels Burned</label><div class="impact-value" id="impact-burning">0</div></div>
-                <div class="impact-item"><label>Land Use Change</label><div class="impact-value" id="impact-deforestation">0</div></div>
-                <div class="impact-item"><label>Cement Production</label><div class="impact-value" id="impact-cement">0</div></div>
+                <div class="impact-item"><label>Fosszilis Égetés</label><div class="impact-value" id="impact-burning">0</div></div>
+                <div class="impact-item"><label>Földhasználat</label><div class="impact-value" id="impact-deforestation">0</div></div>
+                <div class="impact-item"><label>Cementgyártás</label><div class="impact-value" id="impact-cement">0</div></div>
             </div>
 
-            <h2>Graph Options</h2>
+            <h2>Grafikon Opciók</h2>
             <div class="graph-options">
-                <div class="toggle-item"><input type="checkbox" id="toggle-atmosphere" checked><label for="toggle-atmosphere">Atmosphere</label></div>
-                <div class="toggle-item"><input type="checkbox" id="toggle-land"><label for="toggle-land">Land</label></div>
-                <div class="toggle-item"><input type="checkbox" id="toggle-oceans"><label for="toggle-oceans">Oceans</label></div>
-                <div class="toggle-item"><input type="checkbox" id="toggle-fossil" checked><label for="toggle-fossil">Fossil Reserves</label></div>
+                <div class="toggle-item"><input type="checkbox" id="toggle-atmosphere" checked><label for="toggle-atmosphere">Légkör</label></div>
+                <div class="toggle-item"><input type="checkbox" id="toggle-land"><label for="toggle-land">Szárazföld</label></div>
+                <div class="toggle-item"><input type="checkbox" id="toggle-oceans"><label for="toggle-oceans">Óceánok</label></div>
+                <div class="toggle-item"><input type="checkbox" id="toggle-fossil" checked><label for="toggle-fossil">Fosszilis</label></div>
             </div>
 
             <div class="buttons">
-                <button id="start-stop-btn">Start Simulation</button>
-                <button id="reset-btn">Reset</button>
+                <button id="start-stop-btn">Szimuláció Indítása</button>
+                <button id="reset-btn">Visszaállítás</button>
             </div>
         </div>
         <div class="right-panel">
@@ -102,10 +102,9 @@
     let reservoirs = { ...INITIAL_VALUES };
     let year = 0;
     let simulationInterval = null;
-    let chartUpdateInterval = null; // Separate interval for chart updates
+    let chartUpdateInterval = null;
     let derivedImpacts = { burning: 0, deforestation: 0, cement: 0 };
 
-    // DOM Elements Cache
     const DOMElements = {
         year: document.getElementById('year'), atmosphere: document.getElementById('atmosphere-val'),
         land: document.getElementById('land-val'), oceans: document.getElementById('oceans-val'),
@@ -119,25 +118,23 @@
                   oceans: document.getElementById('toggle-oceans'), fossil: document.getElementById('toggle-fossil') }
     };
 
-    // --- CHART SETUP ---
     const ctx = document.getElementById('carbonChart').getContext('2d');
     const carbonChart = new Chart(ctx, {
         type: 'line',
         data: { labels: [], datasets: [
-            { label: 'Atmosphere', data: [], borderColor: '#e74c3c', hidden: false, tension: 0.1 },
-            { label: 'Land', data: [], borderColor: '#2ecc71', hidden: true, tension: 0.1 },
-            { label: 'Oceans', data: [], borderColor: '#3498db', hidden: true, tension: 0.1 },
-            { label: 'Fossil Reserves', data: [], borderColor: '#34495e', hidden: false, tension: 0.1, borderDash: [5, 5] }
+            { label: 'Légkör', data: [], borderColor: '#e74c3c', hidden: false, tension: 0.1 },
+            { label: 'Szárazföld', data: [], borderColor: '#2ecc71', hidden: true, tension: 0.1 },
+            { label: 'Óceánok', data: [], borderColor: '#3498db', hidden: true, tension: 0.1 },
+            { label: 'Fosszilis Tartalék', data: [], borderColor: '#34495e', hidden: false, tension: 0.1, borderDash: [5, 5] }
         ]},
         options: {
-            responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, // Disable default animation for performance
-            scales: { x: { title: { display: true, text: 'Year' } },
-                      y: { type: 'logarithmic', // CORRECTED: Ensures logarithmic scale is applied
-                           title: { display: true, text: 'Gigatons of Carbon (GtC)' } } }
+            responsive: true, maintainAspectRatio: false, animation: false,
+            scales: { x: { title: { display: true, text: 'Év' } },
+                      y: { type: 'logarithmic',
+                           title: { display: true, text: 'Gigatonna Szén (GtC)' } } }
         }
     });
 
-    // --- FUNCTIONS ---
     function calculateDerivedImpacts() {
         const population = parseFloat(DOMElements.populationSlider.value);
         const ecoFactor = parseFloat(DOMElements.ecoSlider.value) / 100;
@@ -155,18 +152,19 @@
     }
 
     function runSimulationStep() {
-        year++;
-        let actualBurning = Math.max(0, Math.min(reservoirs.fossil, derivedImpacts.burning));
-        const growthPotential = 1 - (reservoirs.land / LAND_CARRYING_CAPACITY);
-        const naturalNetUptake = LAND_GROWTH_RATE * reservoirs.land * growthPotential;
-        const landChange = naturalNetUptake - derivedImpacts.deforestation;
-        const oceanUptake = (reservoirs.atmosphere - 600) * OCEAN_UPTAKE_FACTOR;
-        const atmosphereChange = actualBurning + derivedImpacts.cement - naturalNetUptake + derivedImpacts.deforestation - oceanUptake;
-        reservoirs.fossil -= actualBurning;
-        reservoirs.atmosphere += atmosphereChange;
-        reservoirs.land += landChange;
-        reservoirs.oceans += oceanUptake - 0.2;
-        reservoirs.rock += 0.2;
+        for (let i = 0; i < 5; i++) { // Run 5 years of simulation per step for speed
+            year++;
+            let actualBurning = Math.max(0, Math.min(reservoirs.fossil, derivedImpacts.burning));
+            const growthPotential = 1 - (reservoirs.land / LAND_CARRYING_CAPACITY);
+            const naturalNetUptake = LAND_GROWTH_RATE * reservoirs.land * growthPotential;
+            const oceanUptake = (reservoirs.atmosphere - 600) * OCEAN_UPTAKE_FACTOR;
+            const atmosphereChange = actualBurning + derivedImpacts.cement - naturalNetUptake + derivedImpacts.deforestation - oceanUptake;
+            reservoirs.fossil -= actualBurning;
+            reservoirs.atmosphere += atmosphereChange;
+            reservoirs.land += (naturalNetUptake - derivedImpacts.deforestation);
+            reservoirs.oceans += (oceanUptake - 0.2);
+            reservoirs.rock += 0.2;
+        }
         updateDisplays();
     }
     
@@ -181,7 +179,6 @@
     }
 
     function updateChart() {
-        if (year % 5 !== 0 && simulationInterval) return; // Only add data points every 5 years to keep it smooth
         carbonChart.data.labels.push(year);
         carbonChart.data.datasets[0].data.push(reservoirs.atmosphere);
         carbonChart.data.datasets[1].data.push(reservoirs.land);
@@ -191,6 +188,7 @@
             carbonChart.data.labels.shift();
             carbonChart.data.datasets.forEach(ds => ds.data.shift());
         }
+        carbonChart.update();
     }
     
     function stopIntervals() {
@@ -203,23 +201,19 @@
     function toggleSimulation() {
         if (simulationInterval) {
             stopIntervals();
-            carbonChart.update(); // Final update to draw any remaining points
-            DOMElements.startStopBtn.textContent = 'Start Simulation';
+            DOMElements.startStopBtn.textContent = 'Szimuláció Indítása';
             DOMElements.startStopBtn.classList.remove('running');
         } else {
             calculateDerivedImpacts();
-            simulationInterval = setInterval(runSimulationStep, 100); // Fast simulation
-            chartUpdateInterval = setInterval(() => { // Slower, steady chart drawing
-                updateChart();
-                carbonChart.update();
-            }, 400); 
-            DOMElements.startStopBtn.textContent = 'Stop Simulation';
+            simulationInterval = setInterval(runSimulationStep, 100);
+            chartUpdateInterval = setInterval(updateChart, 400); 
+            DOMElements.startStopBtn.textContent = 'Szimuláció Leállítása';
             DOMElements.startStopBtn.classList.add('running');
         }
     }
 
     function resetSimulation() {
-        if (simulationInterval) stopIntervals();
+        stopIntervals();
         year = 0;
         reservoirs = { ...INITIAL_VALUES };
         DOMElements.populationSlider.value = 8;
@@ -232,30 +226,33 @@
         DOMElements.toggle.fossil.checked = true;
         
         carbonChart.data.labels = [];
-        carbonChart.data.datasets.forEach((dataset, index) => {
+        carbonChart.data.datasets.forEach((dataset) => {
             dataset.data = [];
-            const key = dataset.label.toLowerCase().split(' ')[0];
-            dataset.hidden = !DOMElements.toggle[key].checked;
+            const key = dataset.label.split(' ')[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            dataset.hidden = !DOMElements.toggle[key]?.checked;
         });
 
-        carbonChart.update();
+        updateChart();
         calculateDerivedImpacts();
         updateDisplays();
     }
 
-    // --- EVENT LISTENERS ---
+    Object.keys(DOMElements.toggle).forEach((key) => {
+        const checkbox = DOMElements.toggle[key];
+        const dataset = carbonChart.data.datasets.find(ds => ds.label.split(' ')[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === key);
+        if(checkbox && dataset) {
+            checkbox.addEventListener('change', (e) => {
+                dataset.hidden = !e.target.checked;
+                carbonChart.update();
+            });
+        }
+    });
+
     DOMElements.populationSlider.oninput = () => { DOMElements.populationVal.textContent = parseFloat(DOMElements.populationSlider.value).toFixed(1); if (!simulationInterval) calculateDerivedImpacts(); };
     DOMElements.ecoSlider.oninput = () => { DOMElements.ecoVal.textContent = DOMElements.ecoSlider.value; if (!simulationInterval) calculateDerivedImpacts(); };
     DOMElements.startStopBtn.addEventListener('click', toggleSimulation);
     DOMElements.resetBtn.addEventListener('click', resetSimulation);
-    Object.keys(DOMElements.toggle).forEach((key, index) => {
-        DOMElements.toggle[key].addEventListener('change', (e) => {
-            carbonChart.data.datasets[index].hidden = !e.target.checked;
-            carbonChart.update();
-        });
-    });
 
-    // --- INITIALIZE ---
     resetSimulation();
 </script>
 
