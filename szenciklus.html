@@ -6,92 +6,23 @@
     <title>Advanced Interactive Carbon Cycle Model</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            background-color: #f0f4f8;
-            color: #333;
-            box-sizing: border-box;
-        }
-        #app-container {
-            width: 95%;
-            max-width: 900px;
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px
- 15px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-top: 0;
-        }
-        .main-layout {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .left-panel {
-            flex: 1;
-            min-width: 300px;
-        }
-        .right-panel {
-            flex: 2;
-            min-width: 400px;
-        }
-        .controls, .reservoirs {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            margin-top: 20px;
-        }
-         .reservoirs {
-            grid-template-columns: repeat(2, 1fr);
-         }
-        .control-item, .reservoir-item {
-            background: #ecf0f1;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; background-color: #f0f4f8; color: #333; box-sizing: border-box; }
+        #app-container { width: 95%; max-width: 950px; background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; margin-top: 0; }
+        .main-layout { display: flex; flex-wrap: wrap; gap: 20px; }
+        .left-panel { flex: 1; min-width: 320px; }
+        .right-panel { flex: 2; min-width: 450px; min-height: 400px;}
+        .controls, .reservoirs { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px; }
+        .reservoirs { grid-template-columns: repeat(2, 1fr); }
+        .control-item, .reservoir-item { background: #ecf0f1; padding: 15px; border-radius: 8px; text-align: center; }
         .reservoir-item { background: #e9f5ff; }
-        label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
+        .reservoir-item .capacity { font-size: 0.8em; color: #555; margin-top: 4px; }
+        label { display: block; margin-bottom: 10px; font-weight: bold; }
         input[type="range"] { width: 100%; }
-        .value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #3498db;
-            margin-top: 5px;
-        }
-        .year-display {
-            font-size: 1.2em;
-            margin: 20px 0;
-            font-weight: 500;
-            text-align: center;
-        }
-        .buttons {
-            margin-top: 25px;
-            text-align: center;
-        }
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            margin: 0 10px;
-            transition: background-color 0.3s;
-        }
+        .value { font-size: 1.5em; font-weight: bold; color: #3498db; margin-top: 5px; }
+        .year-display { font-size: 1.2em; margin: 20px 0; font-weight: 500; text-align: center; }
+        .buttons { margin-top: 25px; text-align: center; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; margin: 0 10px; transition: background-color 0.3s; }
         #start-stop-btn { background-color: #27ae60; color: white; }
         #start-stop-btn.running { background-color: #e74c3c; }
         #reset-btn { background-color: #95a5a6; color: white; }
@@ -100,7 +31,7 @@
 <body>
 
 <div id="app-container">
-    <h1>Advanced Carbon Cycle Model</h1>
+    <h1>Refined Carbon Cycle Model</h1>
     <div class="main-layout">
         <div class="left-panel">
             <div class="year-display">Year: <span id="year">0</span></div>
@@ -112,6 +43,7 @@
                 <div class="reservoir-item">
                     <label>Land</label>
                     <div class="value" id="land-val">2500</div>
+                    <div class="capacity" id="land-capacity">(0%)</div>
                 </div>
                 <div class="reservoir-item">
                     <label>Oceans</label>
@@ -119,7 +51,7 @@
                 </div>
                 <div class="reservoir-item">
                     <label>Sediment/Rock</label>
-                    <div class="value" id="rock-val">60000000</div>
+                    <div class="value" id="rock-val">60M</div>
                 </div>
             </div>
              <div class="controls">
@@ -135,8 +67,8 @@
                 </div>
                 <div class="control-item">
                     <label>Deforestation Rate</label>
-                    <input type="range" id="deforestation-slider" min="0" max="100" value="10" step="1">
-                    <span id="deforestation-val">10</span> %
+                    <input type="range" id="deforestation-slider" min="0" max="100" value="5" step="1">
+                    <span id="deforestation-val">5</span> %
                 </div>
             </div>
              <div class="buttons">
@@ -151,13 +83,17 @@
 </div>
 
 <script>
-    // --- INITIAL STATE ---
+    // --- MODEL CONSTANTS ---
+    const LAND_CARRYING_CAPACITY = 3000; // Max GtC the land can hold
+    const LAND_GROWTH_RATE = 0.01;      // Intrinsic growth rate of biosphere
     const INITIAL_VALUES = {
         atmosphere: 850,
         land: 2500,
         oceans: 38000,
         rock: 60000000
     };
+
+    // --- STATE VARIABLES ---
     let reservoirs = { ...INITIAL_VALUES };
     let year = 0;
     let simulationInterval = null;
@@ -166,6 +102,7 @@
     const yearEl = document.getElementById('year');
     const atmosphereEl = document.getElementById('atmosphere-val');
     const landEl = document.getElementById('land-val');
+    const landCapacityEl = document.getElementById('land-capacity');
     const oceansEl = document.getElementById('oceans-val');
     const rockEl = document.getElementById('rock-val');
     const burningSlider = document.getElementById('burning-slider');
@@ -181,42 +118,14 @@
     const ctx = document.getElementById('carbonChart').getContext('2d');
     const carbonChart = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Atmosphere (GtC)',
-                data: [],
-                borderColor: 'rgba(231, 76, 60, 1)',
-                backgroundColor: 'rgba(231, 76, 60, 0.2)',
-                borderWidth: 2,
-                fill: false,
-                tension: 0.1
-            }, {
-                label: 'Land (GtC)',
-                data: [],
-                borderColor: 'rgba(39, 174, 96, 1)',
-                 backgroundColor: 'rgba(39, 174, 96, 0.2)',
-                borderWidth: 2,
-                fill: false,
-                tension: 0.1
-            }, {
-                label: 'Oceans (GtC)',
-                data: [],
-                borderColor: 'rgba(52, 152, 219, 1)',
-                backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                borderWidth: 2,
-                fill: false,
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { title: { display: true, text: 'Year' } },
-                y: { title: { display: true, text: 'Gigatons of Carbon (GtC)' } }
-            }
-        }
+        data: { labels: [], datasets: [
+            { label: 'Atmosphere', data: [], borderColor: '#e74c3c', fill: false, tension: 0.1 },
+            { label: 'Land', data: [], borderColor: '#2ecc71', fill: false, tension: 0.1 }
+        ]},
+        options: { responsive: true, maintainAspectRatio: false, scales: {
+            x: { title: { display: true, text: 'Year' } },
+            y: { title: { display: true, text: 'Gigatons of Carbon (GtC)' } }
+        }}
     });
 
     // --- FUNCTIONS ---
@@ -225,15 +134,20 @@
         atmosphereEl.textContent = reservoirs.atmosphere.toFixed(0);
         landEl.textContent = reservoirs.land.toFixed(0);
         oceansEl.textContent = reservoirs.oceans.toFixed(0);
-        rockEl.textContent = reservoirs.rock.toFixed(0);
+        rockEl.textContent = (reservoirs.rock / 1000000).toFixed(1) + 'M';
+        const landPercentage = (reservoirs.land / LAND_CARRYING_CAPACITY * 100).toFixed(0);
+        landCapacityEl.textContent = `(${landPercentage}% of capacity)`;
     }
 
-     function updateChart() {
-        if (year % 5 === 0) { // Update chart every 5 years to keep it readable
+    function updateChart() {
+        if (year % 5 === 0) {
             carbonChart.data.labels.push(year);
             carbonChart.data.datasets[0].data.push(reservoirs.atmosphere);
             carbonChart.data.datasets[1].data.push(reservoirs.land);
-            carbonChart.data.datasets[2].data.push(reservoirs.oceans);
+            if (carbonChart.data.labels.length > 100) { // Keep chart from getting too crowded
+                carbonChart.data.labels.shift();
+                carbonChart.data.datasets.forEach(ds => ds.data.shift());
+            }
             carbonChart.update();
         }
     }
@@ -241,27 +155,35 @@
     function runSimulationStep() {
         year++;
 
+        // --- Human Inputs ---
         const burning = parseFloat(burningSlider.value);
         const cement = parseFloat(cementSlider.value);
-        const deforestationFactor = 1 - (parseFloat(deforestationSlider.value) / 100);
+        const deforestationRate = parseFloat(deforestationSlider.value) / 100;
 
-        // --- Fluxes (GtC/yr) ---
-        const photosynthesis = 120 * deforestationFactor;
-        const respiration = 118;
-        const oceanUptake = (reservoirs.atmosphere - 600) * 0.05; // Simplified ocean sink
+        // --- Land Carbon Dynamics ---
+        // 1. Logistic Growth (Natural net photosynthesis/respiration)
+        const growthPotential = 1 - (reservoirs.land / LAND_CARRYING_CAPACITY);
+        const naturalNetUptake = LAND_GROWTH_RATE * reservoirs.land * growthPotential;
+
+        // 2. Non-linear Deforestation Impact
+        const deforestationImpactFactor = deforestationRate ** 2; // Squaring makes small rates have tiny effect
+        const deforestationLoss = reservoirs.land * deforestationImpactFactor * 0.01; // % of land carbon lost
+
+        const landChange = naturalNetUptake - deforestationLoss;
+
+        // --- Other Fluxes ---
+        const oceanUptake = (reservoirs.atmosphere - 600) * 0.04; // Simplified ocean sink
         const sedimentation = 0.2; // Slow geological process
 
-        // --- Calculate Changes ---
-        const landChange = photosynthesis - respiration;
+        // --- Calculate Changes in Reservoirs ---
         const oceansChange = oceanUptake - sedimentation;
-        const rockChange = sedimentation;
-        const atmosphereChange = burning + cement + respiration - photosynthesis - oceanUptake;
+        const atmosphereChange = burning + cement - naturalNetUptake + deforestationLoss - oceanUptake;
 
         // --- Update Reservoirs ---
         reservoirs.atmosphere += atmosphereChange;
         reservoirs.land += landChange;
-        reservoirs.oceans -= oceansChange;
-        reservoirs.rock += rockChange;
+        reservoirs.oceans += oceansChange;
+        reservoirs.rock += sedimentation;
 
         updateDisplays();
         updateChart();
@@ -274,7 +196,7 @@
             startStopBtn.textContent = 'Start Simulation';
             startStopBtn.classList.remove('running');
         } else {
-            simulationInterval = setInterval(runSimulationStep, 100); // Faster for smoother graph
+            simulationInterval = setInterval(runSimulationStep, 100);
             startStopBtn.textContent = 'Stop Simulation';
             startStopBtn.classList.add('running');
         }
@@ -284,15 +206,12 @@
         if (simulationInterval) toggleSimulation();
         year = 0;
         reservoirs = { ...INITIAL_VALUES };
-        // Reset sliders to default
         burningSlider.value = 9;
-        deforestationSlider.value = 10;
+        deforestationSlider.value = 5;
         cementSlider.value = 1;
-        // Reset slider value displays
         burningValEl.textContent = burningSlider.value;
         deforestationValEl.textContent = deforestationSlider.value;
         cementValEl.textContent = cementSlider.value;
-        // Reset chart
         carbonChart.data.labels = [];
         carbonChart.data.datasets.forEach(dataset => dataset.data = []);
         carbonChart.update();
