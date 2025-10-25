@@ -94,9 +94,13 @@
             // 1. Draw the video frame onto the canvas
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // 2. Detect faces
+            // [NEW] Add a red "heartbeat" square to show the loop is running
+            ctx.fillStyle = 'red';
+            ctx.fillRect(10, 10, 15, 15); // 15x15 red square at top-left corner
+
+            // 2. Detect faces [CHANGED: Pass the canvas, not the video]
             const returnTensors = false;
-            const predictions = await model.estimateFaces(video, returnTensors);
+            const predictions = await model.estimateFaces(canvas, returnTensors);
 
             // 3. Only draw boxes for detected faces
             if (predictions.length > 0) {
