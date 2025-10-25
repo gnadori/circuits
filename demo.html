@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Detection Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- TensorFlow.js Core -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.11.0/dist/tf-core.min.js"></script>
+    <!-- TensorFlow.js Converter -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@3.11.0/dist/tf-converter.min.js"></script>
+    <!-- TensorFlow.js Backend WebGL -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@3.11.0/dist/tf-backend-webgl.min.js"></script>
+    <!-- BlazeFace Model -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        canvas {
+            transform: scaleX(-1); /* Mirror the canvas to feel like a selfie camera */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold text-center mb-4">Face Detection Test</h1>
+        
+        <div id="loading" class="text-center p-4">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
+            <p>Loading Model & Starting Camera...</p>
+        </div>
+
+        <div class="relative w-full rounded-lg overflow-hidden shadow-lg bg-gray-800" style="padding-top: 75%;">
+            <!-- The canvas will be positioned absolutely within this container -->
+            <canvas id="canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+            <!-- The video element is hidden but provides the stream -->
+            <video id="video" playsinline style="display: none;"></video>
+        </div>
+        
+        <button id="startButton" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
+            Start Camera
+        </button>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const loading = document.getElementById('loading');
+        const startButton = document.getElementById('startButton');
+
+        let model;
+
+        async function setupCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' }, // Use front camera
+                    audio: false
+                });
+                video.srcObject = stream;
+                return new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        resolve(video);
+                    };
+                });
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                loading.innerText = "Error accessing camera. Please grant permission and refresh.";
+            }
+        }
+
+        async function loadModel() {
+            try {
+                await tf.setBackend('webgl');
+                model = await blazeface.load();
+            } catch (err) {
+                console.error("Error loading model: ", err);
+                loading.innerText = "Error loading model. Please refresh.";
+            }
+        }
+
+        async function detectFaces() {
+            if (!model || !video.videoWidth) {
+                requestAnimationFrame(detectFaces);
+                return;
+            }
+
+            // Set canvas size to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // 1. Draw the video frame onto the canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // 2. Detect faces
+            const returnTensors = false;
+            const predictions = await model.estimateFaces(video, returnTensors);
+
+            // 3. Only draw boxes for detected faces
+            if (predictions.length > 0) {
+                for (let i = 0; i < predictions.length; i++) {
+                    const start = predictions[i].topLeft;
+                    const end = predictions[i].bottomRight;
+                    const x = start[0];
+                    const y = start[1];
+                    const width = end[0] - start[0];
+                    const height = end[1] - start[1];
+
+                    // 4. Draw a green box so we can see the detection area
+                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)'; // Bright green
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(x, y, width, height);
+                }
+            }
+
+            // 5. Repeat
+            requestAnimationFrame(detectFaces);
+        }
+
+        async function main() {
+            startButton.style.display = 'none';
+            loading.style.display = 'block';
+            
+            await loadModel();
+            await setupCamera();
+            video.play();
+            
+            loading.style.display = 'none';
+            detectFaces();
+        }
+        
+        startButton.addEventListener('click', main);
+
+    </script>
+</body>
+</html>
+
