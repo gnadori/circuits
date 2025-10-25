@@ -3,16 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Detection Test v3</title>
+    <title>Face Detection Test v4</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- TensorFlow.js Core -->
+    <!-- TensorFlow.js Core (still needed) -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.11.0/dist/tf-core.min.js"></script>
-    <!-- TensorFlow.js Converter -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@3.11.0/dist/tf-converter.min.js"></script>
-    <!-- TensorFlow.js Backend WebGL -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@3.11.0/dist/tf-backend-webgl.min.js"></script>
     
-    <!-- NEW MODEL: MediaPipe Face Detector -->
+    <!-- MediaPipe Face Detector scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.1/dist/face-detection.min.js"></script>
     
@@ -20,13 +17,12 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* REMOVED: transform: scaleX(-1) from canvas. We will do this in JS now. */
     </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
-        <h1 class="text-2xl font-bold text-center mb-4">Face Detection Test (New Model)</h1>
+        <h1 class="text-2xl font-bold text-center mb-4">Face Detection Test (MediaPipe Runtime)</h1>
         
         <div id="loading" class="text-center p-4">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
@@ -38,6 +34,11 @@
             <video id="video" playsinline style="display: none;"></video>
         </div>
         
+        <!-- NEW: Status Box -->
+        <div id="status" class="mt-2 p-3 bg-gray-700 rounded-lg text-sm text-yellow-300 h-12 text-center">
+            Status: Initializing...
+        </div>
+
         <!-- Camera Control Buttons -->
         <div class="grid grid-cols-2 gap-4 mt-4">
             <button id="startButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
@@ -56,13 +57,14 @@
         const loading = document.getElementById('loading');
         const startButton = document.getElementById('startButton');
         const switchButton = document.getElementById('switchButton');
+        const status = document.getElementById('status'); // Status box
 
-        let detector; // Changed from 'model'
-        let currentFacingMode = 'user'; // 'user' (front) or 'environment' (back)
+        let detector; 
+        let currentFacingMode = 'user';
 
         async function setupCamera() {
             loading.innerText = "Accessing camera...";
-            // Stop any existing stream
+            status.innerText = "Status: Accessing camera...";
             if (video.srcObject) {
                 video.srcObject.getTracks().forEach(track => track.stop());
             }
@@ -81,23 +83,30 @@
             } catch (err) {
                 console.error("Error accessing camera: ", err);
                 loading.innerText = "Error accessing camera. Please grant permission and refresh.";
+                status.innerText = "Error: Camera access denied.";
             }
         }
 
         async function loadModel() {
             loading.innerText = "Loading detection model...";
+            status.innerText = "Status: Loading model...";
             try {
                 await tf.setBackend('webgl');
                 const model = faceDetection.SupportedModels.MediaPipeFaceDetector;
+                
+                // [NEW] Using MediaPipe runtime
                 const detectorConfig = {
-                    runtime: 'tfjs', // or 'mediapipe'
-                    // solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4'
+                    runtime: 'mediapipe', 
+                    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4'
                 };
                 detector = await faceDetection.createDetector(model, detectorConfig);
+                
                 loading.innerText = "Model loaded.";
+                status.innerText = "Status: Model loaded. Ready to detect.";
             } catch (err) {
                 console.error("Error loading model: ", err);
                 loading.innerText = "Error loading model. Please refresh.";
+                status.innerText = "Error: Could not load model.";
             }
         }
 
@@ -111,42 +120,50 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
-            // --- Draw mirrored video ---
-            // This is the proper way to mirror the video for a "selfie" view
+            // Draw mirrored video
             ctx.save();
             ctx.scale(-1, 1);
             ctx.translate(-canvas.width, 0);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             ctx.restore();
-            // --- End mirrored draw ---
-
-            // [NEW] Add a red "heartbeat" square (drawn *after* restore, so it's not mirrored)
+            
+            // Draw red "heartbeat" square
             ctx.fillStyle = 'red';
             ctx.fillRect(10, 10, 15, 15);
 
-            // 2. Detect faces (using the non-mirrored video element for better accuracy)
-            const predictions = await detector.estimateFaces(video);
+            let predictionText = "Status: Detecting...";
+            try {
+                // Detect faces
+                const predictions = await detector.estimateFaces(video);
+                predictionText = `Predictions: ${predictions.length}`;
 
-            // 3. Draw boxes
-            if (predictions.length > 0) {
-                for (let i = 0; i < predictions.length; i++) {
-                    const box = predictions[i].box;
-                    const x = box.xMin;
-                    const y = box.yMin;
-                    const width = box.width;
-                    const height = box.height;
-                    
-                    // We must flip the X coordinate for drawing on the mirrored canvas
-                    const mirroredX = canvas.width - x - width;
+                // Draw boxes
+                if (predictions.length > 0) {
+                    for (let i = 0; i < predictions.length; i++) {
+                        const box = predictions[i].box;
+                        const x = box.xMin;
+                        const y = box.yMin;
+                        const width = box.width;
+                        const height = box.height;
+                        
+                        // Flip the X coordinate for mirrored canvas
+                        const mirroredX = canvas.width - x - width;
 
-                    // 4. Draw a green box
-                    ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
-                    ctx.lineWidth = 4;
-                    ctx.strokeRect(mirroredX, y, width, height);
+                        // Draw a green box
+                        ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(mirroredX, y, width, height);
+                    }
                 }
+            } catch (e) {
+                console.error("Error during detection:", e);
+                predictionText = `Error: ${e.message}`;
             }
 
-            // 5. Repeat
+            // Update status box
+            status.innerText = predictionText;
+
+            // Repeat
             requestAnimationFrame(detectFaces);
         }
 
@@ -166,13 +183,12 @@
         });
 
         switchButton.addEventListener('click', async () => {
-            // Toggle facing mode
             currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
             
             loading.style.display = 'block';
             loading.innerText = "Switching camera...";
+            status.innerText = "Status: Switching camera...";
             
-            // Restart the camera
             await setupCamera();
             video.play();
             
