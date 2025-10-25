@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-time Face Blur</title>
+    <title>Real-time Face Blur (Neurodiverse Perspective)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- TensorFlow.js Core --><script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.11.0/dist/tf-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@3.11.0/dist/tf-backend-webgl.min.js"></script>
@@ -20,7 +20,7 @@
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
-        <h1 class="text-2xl font-bold text-center mb-4">Real-time Face Blur</h1>
+        <h1 class="text-2xl font-bold text-center mb-4">Real-time Face Blur (Neurodiverse Perspective)</h1>
         
         <div id="loading" class="text-center p-4">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
@@ -143,7 +143,7 @@
                         const mirroredX = canvas.width - x - width;
 
                         // --- APPLY PIXELATION BLUR ---
-                        const pixelationFactor = 16; // Adjust this value for more/less blur
+                        const pixelationFactor = 30; // Increased for more blur!
 
                         const smallerWidth = width / pixelationFactor;
                         const smallerHeight = height / pixelationFactor;
@@ -161,11 +161,6 @@
                             mirroredX, y, width, height // Destination (original) rectangle
                         );
                         // --- END PIXELATION BLUR ---
-
-                        // // Keep green box for debugging if needed (uncomment to see)
-                        // ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
-                        // ctx.lineWidth = 4;
-                        // ctx.strokeRect(mirroredX, y, width, height);
                     }
                 }
             } catch (e) {
