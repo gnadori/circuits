@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Detection Test v4</title>
+    <title>Real-time Face Blur</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- TensorFlow.js Core (still needed) -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.11.0/dist/tf-core.min.js"></script>
+    <!-- TensorFlow.js Core --><script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.11.0/dist/tf-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@3.11.0/dist/tf-backend-webgl.min.js"></script>
     
-    <!-- MediaPipe Face Detector scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.min.js"></script>
+    <!-- MediaPipe Face Detector scripts --><script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.1/dist/face-detection.min.js"></script>
     
     <style>
@@ -22,7 +20,7 @@
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
-        <h1 class="text-2xl font-bold text-center mb-4">Face Detection Test (MediaPipe Runtime)</h1>
+        <h1 class="text-2xl font-bold text-center mb-4">Real-time Face Blur</h1>
         
         <div id="loading" class="text-center p-4">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
@@ -34,12 +32,10 @@
             <video id="video" playsinline style="display: none;"></video>
         </div>
         
-        <!-- NEW: Status Box -->
         <div id="status" class="mt-2 p-3 bg-gray-700 rounded-lg text-sm text-yellow-300 h-12 text-center">
             Status: Initializing...
         </div>
 
-        <!-- Camera Control Buttons -->
         <div class="grid grid-cols-2 gap-4 mt-4">
             <button id="startButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
                 Start Camera
@@ -57,7 +53,7 @@
         const loading = document.getElementById('loading');
         const startButton = document.getElementById('startButton');
         const switchButton = document.getElementById('switchButton');
-        const status = document.getElementById('status'); // Status box
+        const status = document.getElementById('status'); 
 
         let detector; 
         let currentFacingMode = 'user';
@@ -94,7 +90,6 @@
                 await tf.setBackend('webgl');
                 const model = faceDetection.SupportedModels.MediaPipeFaceDetector;
                 
-                // [NEW] Using MediaPipe runtime
                 const detectorConfig = {
                     runtime: 'mediapipe', 
                     solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4'
@@ -116,28 +111,26 @@
                 return;
             }
 
-            // Set canvas size to match video
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
-            // Draw mirrored video
+            // --- Draw mirrored video onto canvas ---
             ctx.save();
             ctx.scale(-1, 1);
             ctx.translate(-canvas.width, 0);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             ctx.restore();
+            // --- End mirrored draw ---
             
-            // Draw red "heartbeat" square
+            // Draw red "heartbeat" square (drawn *after* restore, so it's not mirrored)
             ctx.fillStyle = 'red';
             ctx.fillRect(10, 10, 15, 15);
 
             let predictionText = "Status: Detecting...";
             try {
-                // Detect faces
                 const predictions = await detector.estimateFaces(video);
-                predictionText = `Predictions: ${predictions.length}`;
+                predictionText = `Faces Detected: ${predictions.length}`;
 
-                // Draw boxes
                 if (predictions.length > 0) {
                     for (let i = 0; i < predictions.length; i++) {
                         const box = predictions[i].box;
@@ -146,13 +139,33 @@
                         const width = box.width;
                         const height = box.height;
                         
-                        // Flip the X coordinate for mirrored canvas
+                        // Flip the X coordinate for drawing on the mirrored canvas
                         const mirroredX = canvas.width - x - width;
 
-                        // Draw a green box
-                        ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(mirroredX, y, width, height);
+                        // --- APPLY PIXELATION BLUR ---
+                        const pixelationFactor = 16; // Adjust this value for more/less blur
+
+                        const smallerWidth = width / pixelationFactor;
+                        const smallerHeight = height / pixelationFactor;
+
+                        // Draw the face region to a smaller size, effectively pixelating it
+                        ctx.drawImage(
+                            canvas, // Source image is the canvas itself (after drawing video)
+                            mirroredX, y, width, height, // Source rectangle
+                            mirroredX, y, smallerWidth, smallerHeight // Destination (smaller) rectangle
+                        );
+                        // Then draw that pixelated smaller image back at the original size
+                        ctx.drawImage(
+                            canvas, // Source image is the canvas itself (now with the tiny pixelated face)
+                            mirroredX, y, smallerWidth, smallerHeight, // Source (smaller) rectangle
+                            mirroredX, y, width, height // Destination (original) rectangle
+                        );
+                        // --- END PIXELATION BLUR ---
+
+                        // // Keep green box for debugging if needed (uncomment to see)
+                        // ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+                        // ctx.lineWidth = 4;
+                        // ctx.strokeRect(mirroredX, y, width, height);
                     }
                 }
             } catch (e) {
@@ -160,10 +173,7 @@
                 predictionText = `Error: ${e.message}`;
             }
 
-            // Update status box
             status.innerText = predictionText;
-
-            // Repeat
             requestAnimationFrame(detectFaces);
         }
 
