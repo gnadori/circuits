@@ -2,86 +2,83 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>Agon - Nagyított Verzió</title>
+    <title>Agon - Extra Nagy Verzió</title>
     <style>
         :root {
-            --bg-color: #f8f9fa;
-            --p1-color: #1a1a1a;
+            --bg-color: #f0f2f5;
+            --p1-color: #2c3e50;
             --p2-color: #ffffff;
             --accent: #3498db;
         }
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            font-family: 'Segoe UI', sans-serif; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             background-color: var(--bg-color); 
             margin: 0; 
-            padding: 20px;
-            overflow-x: hidden;
+            padding: 10px;
+            min-height: 100vh;
         }
         
         #status { 
-            margin-bottom: 20px; 
-            font-size: 1.6em; 
+            margin: 10px 0;
+            font-size: 1.8em; 
             font-weight: 800; 
             background: white; 
-            padding: 15px 40px; 
+            padding: 15px 50px; 
             border-radius: 100px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            z-index: 10;
         }
 
-        .status-placing { color: #fff; background: #e74c3c !important; animation: pulse-red 1.5s infinite; }
-        @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .status-placing { color: #fff; background: #e74c3c !important; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
         #game-container { 
             background: #fff; 
-            padding: 20px; 
-            border-radius: 30px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-            width: 90vw;
-            max-width: 800px;
+            padding: 15px; 
+            border-radius: 25px; 
+            box-shadow: 0 15px 45px rgba(0,0,0,0.1);
+            width: 95vw;
+            max-width: 1100px; /* Itt állítható a maximális fizikai méret */
             display: flex;
             justify-content: center;
+            align-items: center;
         }
 
         svg { 
             width: 100%; 
             height: auto; 
-            max-height: 80vh;
-            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+            max-height: 75vh; /* Ne lógjon le a képernyőről */
+            display: block;
         }
         
-        /* Mezők */
-        .hex { stroke: #333; stroke-width: 0.5; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+        .hex { stroke: #444; stroke-width: 0.5; transition: 0.2s; cursor: pointer; }
         .hex:hover { filter: brightness(1.1); }
         
-        .ring-6 { fill: #cfd8dc; } .ring-5 { fill: #b0bec5; } .ring-4 { fill: #90a4ae; }
-        .ring-3 { fill: #78909c; } .ring-2 { fill: #607d8b; } .ring-1 { fill: #546e7a; }
-        .throne { fill: #ffc107; stroke: #ff6f00; stroke-width: 3; }
+        /* Színpaletta frissítve a beküldött kép alapján */
+        .ring-6 { fill: #d1d8e0; } .ring-5 { fill: #a5b1c2; } .ring-4 { fill: #778ca3; }
+        .ring-3 { fill: #4b6584; } .ring-2 { fill: #2d98da; } .ring-1 { fill: #45aaf2; }
+        .throne { fill: #f1c40f; stroke: #d35400; stroke-width: 4; }
 
-        /* Kijelölések */
-        .selectable { stroke: #2ecc71; stroke-width: 5; stroke-linejoin: round; }
-        .target { stroke: #f39c12; stroke-width: 6; stroke-dasharray: 8; animation: dash 1s linear infinite; }
-        .placement-zone { fill: var(--accent) !important; stroke: #fff; stroke-width: 4; }
+        .selectable { stroke: #27ae60; stroke-width: 5; }
+        .target { stroke: #e67e22; stroke-width: 6; stroke-dasharray: 10; }
+        .placement-zone { fill: var(--accent) !important; stroke: white; stroke-width: 5; }
 
-        @keyframes dash { to { stroke-dashoffset: -16; } }
-
-        /* Bábuk - pointer-events: none kritikus a kattintáshoz! */
         .piece-ui { pointer-events: none; }
-        .p1 { fill: var(--p1-color); stroke: #000; stroke-width: 1; }
-        .p2 { fill: var(--p2-color); stroke: #333; stroke-width: 2; }
+        .p1 { fill: var(--p1-color); } 
+        .p2 { fill: var(--p2-color); stroke: #2c3e50; stroke-width: 2; }
         .crown { fill: #f39c12; }
 
         .log-container { 
-            margin-top: 20px; background: #2c3e50; padding: 15px; border-radius: 15px; 
-            width: 90vw; max-width: 800px; color: #ecf0f1;
-            height: 120px; overflow-y: auto; font-family: monospace;
+            margin-top: 15px; background: #fff; padding: 15px; border-radius: 15px; 
+            width: 95vw; max-width: 1100px;
+            height: 100px; overflow-y: auto;
+            border: 1px solid #ddd; font-size: 1.1em;
         }
-        .log-msg { margin: 4px 0; border-left: 3px solid #3498db; padding-left: 10px; opacity: 0.9; }
-        .log-alert { border-left-color: #e74c3c; color: #ff7675; font-weight: bold; }
+        .log-msg { margin: 5px 0; color: #444; border-bottom: 1px solid #f0f0f0; }
+        .log-alert { color: #c0392b; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -89,11 +86,11 @@
     <div id="status">Sötét következik</div>
     
     <div id="game-container">
-        <svg id="board" viewBox="0 0 1000 1000"></svg>
+        <svg id="board" viewBox="0 0 1100 1100"></svg>
     </div>
 
     <div class="log-container" id="log">
-        <div class="log-msg">Játék indítva. Jó szórakozást!</div>
+        <div class="log-msg">Üdv az Agonban! A tábla mérete megnövelve.</div>
     </div>
 
 <script>
@@ -101,30 +98,27 @@
     const statusDiv = document.getElementById('status');
     const logContainer = document.getElementById('log');
     
-    // MÉRETEK NÖVELÉSE
-    const R = 48; // Mező sugara (35-ről 48-ra növelve)
+    // MÉRETEK: R=55 nagyobb hexákat ad
+    const R = 55; 
     const W = Math.sqrt(3) * R;
     const H = 2 * R;
-    const CENTER = 500; // SVG viewBox középpontja
+    const CENTER = 550; 
     
     let turn = 1; 
     let selectedHex = null;
     let gameState = {}; 
     let capturedPool = { 1: [], 2: [] }; 
 
+    function getRing(q, r) { return Math.max(Math.abs(q), Math.abs(r), Math.abs(-q-r)); }
+
     function addLog(msg, isAlert = false) {
         const div = document.createElement('div');
         div.className = isAlert ? 'log-msg log-alert' : 'log-msg';
-        div.innerText = `[${new Date().toLocaleTimeString('hu-HU')}] ${msg}`;
+        div.innerText = `> ${msg}`;
         logContainer.prepend(div);
     }
 
-    function getRing(q, r) { 
-        return Math.max(Math.abs(q), Math.abs(r), Math.abs(-q-r)); 
-    }
-
     function createBoard() {
-        svg.innerHTML = ''; // Alaphelyzet
         for (let q = -6; q <= 6; q++) {
             for (let r = Math.max(-6, -q - 6); r <= Math.min(6, -q + 6); r++) {
                 const x = CENTER + W * (q + r/2);
@@ -132,17 +126,15 @@
                 const ring = getRing(q, r);
                 
                 const hex = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-                const points = [];
+                const pts = [];
                 for (let i = 0; i < 6; i++) {
-                    const angle = (i * 60 - 30) * Math.PI / 180;
-                    points.push(`${x + R * Math.cos(angle)},${y + R * Math.sin(angle)}`);
+                    const a = (i * 60 - 30) * Math.PI / 180;
+                    pts.push(`${x + R * Math.cos(a)},${y + R * Math.sin(a)}`);
                 }
-                
-                hex.setAttribute("points", points.join(" "));
+                hex.setAttribute("points", pts.join(" "));
                 hex.setAttribute("class", `hex ring-${ring} ${ring === 0 ? 'throne' : ''}`);
                 hex.setAttribute("id", `hex-${q},${r}`);
-                // Fontos: a mezőre tesszük az eseménykezelőt
-                hex.onclick = (e) => { e.preventDefault(); handleHexClick(q, r); };
+                hex.onclick = () => handleHexClick(q, r);
                 svg.appendChild(hex);
             }
         }
@@ -151,9 +143,10 @@
     }
 
     function setupInitialPosition() {
+        // Sötét (P1)
         gameState["0,-6"] = {p: 1, t: 'q'};
         [[-2,-4], [-4,-2], [-6,0], [2,-6], [4,-6], [6,-6]].forEach(pos => gameState[pos.join(',')] = {p:1, t:'g'});
-        
+        // Világos (P2)
         gameState["0,6"] = {p: 2, t: 'q'};
         [[-2,6], [-4,6], [-6,6], [2,4], [4,2], [6,0]].forEach(pos => gameState[pos.join(',')] = {p:2, t:'g'});
     }
@@ -162,7 +155,6 @@
         document.querySelectorAll('.piece-ui').forEach(p => p.remove());
         document.querySelectorAll('.hex').forEach(h => h.classList.remove('selectable', 'target', 'placement-zone'));
 
-        // Bábuk rajzolása
         for (const [id, piece] of Object.entries(gameState)) {
             const [q, r] = id.split(',').map(Number);
             const x = CENTER + W * (q + r/2);
@@ -170,19 +162,16 @@
             
             const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
             g.setAttribute("class", "piece-ui");
-            
             const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             c.setAttribute("cx", x); c.setAttribute("cy", y);
-            c.setAttribute("r", piece.t === 'q' ? R*0.75 : R*0.55);
+            c.setAttribute("r", piece.t === 'q' ? R*0.7 : R*0.5);
             c.setAttribute("class", `p${piece.p}`);
             g.appendChild(c);
 
             if(piece.t === 'q') {
                 const crown = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                crown.setAttribute("cx", x); crown.setAttribute("cy", y); 
-                crown.setAttribute("r", R*0.3);
-                crown.setAttribute("class", "crown"); 
-                g.appendChild(crown);
+                crown.setAttribute("cx", x); crown.setAttribute("cy", y); crown.setAttribute("r", R*0.25);
+                crown.setAttribute("class", "crown"); g.appendChild(crown);
             }
             svg.appendChild(g);
         }
@@ -196,24 +185,9 @@
             statusDiv.innerText = `${turn === 1 ? 'Sötét' : 'Világos'} következik`;
             statusDiv.className = "";
             for (const id in gameState) {
-                if (gameState[id].p === turn) {
-                    const el = document.getElementById(`hex-${id}`);
-                    if(el) el.classList.add('selectable');
-                }
+                if (gameState[id].p === turn) document.getElementById(`hex-${id}`).classList.add('selectable');
             }
         }
-    }
-
-    function showPlacementOptions(piece) {
-        document.querySelectorAll('.hex').forEach(hex => {
-            const id = hex.id.replace('hex-','');
-            const [q, r] = id.split(',').map(Number);
-            if (!gameState[id] && getRing(q, r) !== 0) {
-                if (piece.t === 'q' || getRing(q, r) === 6) {
-                    hex.classList.add('placement-zone');
-                }
-            }
-        });
     }
 
     function handleHexClick(q, r) {
@@ -221,9 +195,9 @@
         const hexEl = document.getElementById(`hex-${id}`);
 
         if (capturedPool[turn].length > 0) {
-            if (hexEl && hexEl.classList.contains('placement-zone')) {
+            if (hexEl.classList.contains('placement-zone')) {
                 gameState[id] = capturedPool[turn].shift();
-                addLog(`${turn === 1 ? 'Sötét' : 'Világos'} visszatette bábuját.`);
+                addLog(`${turn === 1 ? 'Sötét' : 'Világos'} bábuját visszahelyezte.`);
                 endTurn();
             }
             return;
@@ -241,12 +215,20 @@
                     updateUI();
                 }
             }
-        } else {
-            if (gameState[id] && gameState[id].p === turn) {
-                selectedHex = {q, r};
-                highlightPossibleMoves(q, r);
-            }
+        } else if (gameState[id] && gameState[id].p === turn) {
+            selectedHex = {q, r};
+            highlightPossibleMoves(q, r);
         }
+    }
+
+    function showPlacementOptions(piece) {
+        document.querySelectorAll('.hex').forEach(hex => {
+            const id = hex.id.replace('hex-','');
+            const [q, r] = id.split(',').map(Number);
+            if (!gameState[id] && getRing(q, r) !== 0) {
+                if (piece.t === 'q' || getRing(q, r) === 6) hex.classList.add('placement-zone');
+            }
+        });
     }
 
     function highlightPossibleMoves(q, r) {
@@ -264,23 +246,18 @@
         const targetId = `${q2},${r2}`;
         if (gameState[targetId]) return false;
         if (!document.getElementById(`hex-${targetId}`)) return false;
-
         const ring1 = getRing(q1, r1), ring2 = getRing(q2, r2);
-        // Hex távolság számítása
         const dist = Math.max(Math.abs(q1-q2), Math.abs(r1-r2), Math.abs((-q1-r1)-(-q2-r2)));
-        
         if (dist !== 1) return false;
         if (ring2 === 0 && gameState[`${q1},${r1}`].t !== 'q') return false;
-        
-        return ring2 <= ring1; // Csak befelé vagy azonos gyűrűn
+        return ring2 <= ring1; 
     }
 
     function executeMove(q1, r1, q2, r2) {
         const piece = gameState[`${q1},${r1}`];
         delete gameState[`${q1},${r1}`];
         gameState[`${q2},${r2}`] = piece;
-        
-        addLog(`${turn === 1 ? 'Sötét' : 'Világos'} lépett.`);
+        addLog(`${turn === 1 ? 'Sötét' : 'Világos'} lépett: ${q2},${r2}`);
         checkCaptures(q2, r2);
         endTurn();
     }
@@ -288,7 +265,6 @@
     function checkCaptures(q, r) {
         const p = gameState[`${q},${r}`].p;
         const dirs = [[1,0], [-1,0], [0,1], [0,-1], [-1,1], [1,-1]];
-        
         dirs.forEach(d => {
             const eq = q+d[0], er = r+d[1];
             const enemy = gameState[`${eq},${er}`];
@@ -297,11 +273,10 @@
                 const friend = gameState[`${fq},${fr}`];
                 if (friend && friend.p === p) {
                     const victim = gameState[`${eq},${er}`];
-                    // Ütés!
                     delete gameState[`${eq},${er}`];
                     capturedPool[victim.p].push(victim);
                     capturedPool[victim.p].sort((a,b) => a.t === 'q' ? -1 : 1);
-                    addLog(`ÜTÉS! ${victim.p === 1 ? 'Sötét' : 'Világos'} bábu fogságba esett!`, true);
+                    addLog(`ÜTÉS! Egy bábu fogságba esett!`, true);
                 }
             }
         });
@@ -323,9 +298,8 @@
                 const piece = gameState[`${d[0]},${d[1]}`];
                 return piece && piece.p === p && piece.t === 'g';
             }).length;
-
             if (guardCount === 6) {
-                alert(`VÉGE A JÁTÉKNAK! A ${p === 1 ? 'Sötét' : 'Világos'} játékos győzött!`);
+                alert(`GRATULÁLUNK! A ${p === 1 ? 'Sötét' : 'Világos'} játékos győzött!`);
                 location.reload();
             }
         }
