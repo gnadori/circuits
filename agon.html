@@ -2,35 +2,44 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>Agon - Javított Verzió</title>
+    <title>Agon - Hibajavított Verzió</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; margin: 0; padding: 20px; }
-        #status { margin-bottom: 15px; font-size: 1.5em; font-weight: bold; background: white; padding: 10px 30px; border-radius: 50px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: all 0.3s; }
-        #game-container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); position: relative; }
-        svg { width: 600px; height: 600px; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; margin: 0; padding: 10px; }
+        #status { 
+            margin-bottom: 10px; font-size: 1.4em; font-weight: bold; 
+            background: white; padding: 12px 30px; border-radius: 50px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center;
+            min-width: 300px;
+        }
+        .status-placing { color: #e74c3c; background: #ffdada !important; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        #game-container { background: white; padding: 10px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
+        svg { width: 100%; max-width: 650px; height: auto; cursor: pointer; display: block; }
         
-        /* Pálya színei */
+        /* Gyűrűk színei */
         .hex { stroke: #444; stroke-width: 0.5; }
         .ring-6 { fill: #d1d8e0; } .ring-5 { fill: #a5b1c2; } .ring-4 { fill: #778ca3; }
         .ring-3 { fill: #4b6584; } .ring-2 { fill: #2d98da; } .ring-1 { fill: #45aaf2; }
         .throne { fill: #f1c40f; stroke: #d35400; stroke-width: 3; }
 
-        /* Kijelölések */
-        .hex.selectable { stroke: #27ae60; stroke-width: 4; filter: brightness(1.1); }
-        .hex.target { stroke: #e74c3c; stroke-width: 4; stroke-dasharray: 5; }
-        .hex.placement { fill: #3498db !important; stroke: white; stroke-width: 3; animation: pulse 1.5s infinite; }
+        /* Jelölések */
+        .hex.selectable { stroke: #27ae60; stroke-width: 4; }
+        .hex.target { stroke: #e67e22; stroke-width: 5; stroke-dasharray: 5; }
+        .hex.placement-zone { fill: #3498db !important; stroke: white; stroke-width: 4; animation: pulse 1.5s infinite; }
 
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        @keyframes pulse { 0% { fill: #3498db; } 50% { fill: #5dade2; } 100% { fill: #3498db; } }
 
         /* Bábuk */
-        .p1 { fill: #2c3e50; } .p2 { fill: #ecf0f1; stroke: #2c3e50; stroke-width: 2; }
+        .p1 { fill: #2c3e50; } .p2 { fill: #ffffff; stroke: #2c3e50; stroke-width: 2; }
         .crown { fill: #e67e22; }
 
-        /* Börtön / Kiütött bábuk */
-        .prison { margin-top: 20px; display: flex; gap: 20px; background: #fff; padding: 15px; border-radius: 15px; border: 2px dashed #bdc3c7; }
-        .prison-box { text-align: center; min-width: 150px; }
-        .prison-count { font-size: 2em; font-weight: bold; color: #e74c3c; }
-        .log { margin-top: 10px; color: #c0392b; font-weight: bold; height: 1.5em; }
+        .log-container { 
+            margin-top: 15px; background: #fff; padding: 10px; border-radius: 10px; 
+            width: 100%; max-width: 600px; border: 1px solid #ddd;
+        }
+        .log-msg { color: #555; font-size: 0.9em; margin: 2px 0; border-bottom: 1px solid #eee; }
+        .log-alert { color: #c0392b; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -41,27 +50,28 @@
         <svg id="board" viewBox="0 0 800 800"></svg>
     </div>
 
-    <div id="message-log" class="log"></div>
-
-    <div class="prison">
-        <div class="prison-box">
-            <div>Sötét kiütött bábui:</div>
-            <div id="p1-prison" class="prison-count">0</div>
-        </div>
-        <div class="prison-box">
-            <div>Világos kiütött bábui:</div>
-            <div id="p2-prison" class="prison-count">0</div>
-        </div>
+    <div class="log-container" id="log">
+        <div class="log-msg">Üdvözöllek az Agon játékban! Sötét kezd.</div>
     </div>
 
 <script>
     const svg = document.getElementById('board');
     const statusDiv = document.getElementById('status');
-    const logDiv = document.getElementById('message-log');
+    const logContainer = document.getElementById('log');
     
     const R = 35, W = Math.sqrt(3) * R, H = 2 * R, CENTER = 400;
     
-    let turn = 1, selectedHex = null, gameState = {}, capturedPool = { 1: [], 2: [] };
+    let turn = 1; // 1: Sötét, 2: Világos
+    let selectedHex = null;
+    let gameState = {}; // "q,r" -> {p: player, t: type}
+    let capturedPool = { 1: [], 2: [] }; // Kiütött bábuk várakozási sora
+
+    function addLog(msg, isAlert = false) {
+        const div = document.createElement('div');
+        div.className = isAlert ? 'log-msg log-alert' : 'log-msg';
+        div.innerText = `> ${msg}`;
+        logContainer.prepend(div);
+    }
 
     function createBoard() {
         for (let q = -6; q <= 6; q++) {
@@ -87,19 +97,19 @@
     function getRing(q, r) { return Math.max(Math.abs(q), Math.abs(r), Math.abs(-q-r)); }
 
     function setupInitialPosition() {
-        // Sötét (P1)
+        // Sötét (P1) a pálya tetején
         gameState["0,-6"] = {p: 1, t: 'q'};
         [[-2,-4], [-4,-2], [-6,0], [2,-6], [4,-6], [6,-6]].forEach(pos => gameState[pos.join(',')] = {p:1, t:'g'});
-        // Világos (P2)
+        // Világos (P2) a pálya alján
         gameState["0,6"] = {p: 2, t: 'q'};
         [[-2,6], [-4,6], [-6,6], [2,4], [4,2], [6,0]].forEach(pos => gameState[pos.join(',')] = {p:2, t:'g'});
     }
 
     function updateUI() {
         document.querySelectorAll('.piece-ui').forEach(p => p.remove());
-        document.querySelectorAll('.hex').forEach(h => h.classList.remove('selectable', 'target', 'placement'));
+        document.querySelectorAll('.hex').forEach(h => h.classList.remove('selectable', 'target', 'placement-zone'));
 
-        // Bábuk rajzolása
+        // Bábuk kirajzolása
         for (const [id, piece] of Object.entries(gameState)) {
             const [q, r] = id.split(',').map(Number);
             const x = CENTER + W * (q + r/2), y = CENTER + (H * 3/4) * r;
@@ -112,24 +122,22 @@
             g.appendChild(c);
             if(piece.t === 'q') {
                 const crown = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                crown.setAttribute("cx", x); crown.setAttribute("cy", y); crown.setAttribute("r", R*0.2);
+                crown.setAttribute("cx", x); crown.setAttribute("cy", y); crown.setAttribute("r", R*0.25);
                 crown.setAttribute("class", "crown"); g.appendChild(crown);
             }
             svg.appendChild(g);
         }
 
-        // Állapot frissítése
-        document.getElementById('p1-prison').innerText = capturedPool[1].length;
-        document.getElementById('p2-prison').innerText = capturedPool[2].length;
-
+        // Fázis és sorrend kezelése
         if (capturedPool[turn].length > 0) {
             const pToPlace = capturedPool[turn][0];
-            statusDiv.innerText = `${turn===1?'Sötét':'Világos'}: Tedd vissza a ${pToPlace.t==='q'?'Királynőt':'Őrt'}!`;
-            statusDiv.style.color = "#3498db";
+            const typeName = pToPlace.t === 'q' ? 'Királynőt' : 'Őrt';
+            statusDiv.innerText = `VISSZAHELYEZÉS: Tedd le a ${typeName}!`;
+            statusDiv.className = "status-placing";
             showPlacementOptions(pToPlace);
         } else {
-            statusDiv.innerText = `${turn===1?'Sötét':'Világos'} következik`;
-            statusDiv.style.color = "#2c3e50";
+            statusDiv.innerText = `${turn === 1 ? 'Sötét' : 'Világos'} következik`;
+            statusDiv.className = "";
             for (const [id, piece] of Object.entries(gameState)) {
                 if (piece.p === turn) document.getElementById(`hex-${id}`).classList.add('selectable');
             }
@@ -140,96 +148,130 @@
         document.querySelectorAll('.hex').forEach(hex => {
             const [q, r] = hex.id.replace('hex-','').split(',').map(Number);
             if (!gameState[`${q},${r}`] && getRing(q, r) !== 0) {
-                if (piece.t === 'q' || getRing(q, r) === 6) hex.classList.add('placement');
+                // Szabály: Királynő bárhová (kivéve trón), Őr csak a 6. gyűrűre
+                if (piece.t === 'q' || getRing(q, r) === 6) {
+                    hex.classList.add('placement-zone');
+                }
             }
         });
     }
 
     function handleHexClick(q, r) {
         const id = `${q},${r}`;
+        const hexEl = document.getElementById(`hex-${id}`);
         
-        // Ha visszahelyezés van
+        // Visszahelyezési fázis
         if (capturedPool[turn].length > 0) {
-            if (document.getElementById(`hex-${id}`).classList.contains('placement')) {
+            if (hexEl.classList.contains('placement-zone')) {
                 gameState[id] = capturedPool[turn].shift();
-                logDiv.innerText = "";
-                nextTurn();
+                addLog(`${turn === 1 ? 'Sötét' : 'Világos'} visszatette egy bábuját.`);
+                endTurn();
+            } else {
+                addLog("Kiütött bábud van! Előbb azt kell visszatenned a kék mezők egyikére.", true);
             }
             return;
         }
 
-        // Normál lépés
+        // Normál lépés fázis
         if (selectedHex) {
-            if (isValid(selectedHex.q, selectedHex.r, q, r)) {
+            if (isValidMove(selectedHex.q, selectedHex.r, q, r)) {
                 executeMove(selectedHex.q, selectedHex.r, q, r);
             } else {
-                selectedHex = null;
-                handleHexClick(q, r);
+                // Ha másik saját bábura kattint, átváltunk arra
+                if (gameState[id] && gameState[id].p === turn) {
+                    selectedHex = {q, r};
+                    highlightPossibleMoves(q, r);
+                } else {
+                    selectedHex = null;
+                    updateUI();
+                }
             }
-        } else if (gameState[id] && gameState[id].p === turn) {
-            selectedHex = {q, r};
-            highlightTargets(q, r);
+        } else {
+            if (gameState[id] && gameState[id].p === turn) {
+                selectedHex = {q, r};
+                highlightPossibleMoves(q, r);
+            }
         }
     }
 
-    function highlightTargets(q, r) {
+    function highlightPossibleMoves(q, r) {
         document.querySelectorAll('.hex').forEach(h => h.classList.remove('target'));
-        [[1,0], [-1,0], [0,1], [0,-1], [-1,1], [1,-1]].forEach(d => {
-            if (isValid(q, r, q+d[0], r+d[1])) {
+        const dirs = [[1,0], [-1,0], [0,1], [0,-1], [-1,1], [1,-1]];
+        dirs.forEach(d => {
+            if (isValidMove(q, r, q+d[0], r+d[1])) {
                 const el = document.getElementById(`hex-${q+d[0]},${r+d[1]}`);
                 if (el) el.classList.add('target');
             }
         });
     }
 
-    function isValid(q1, r1, q2, r2) {
-        if (gameState[`${q2},${r2}`]) return false;
+    function isValidMove(q1, r1, q2, r2) {
+        const targetId = `${q2},${r2}`;
+        if (gameState[targetId]) return false; // Foglalt
+
         const ring1 = getRing(q1, r1), ring2 = getRing(q2, r2);
         const dist = Math.max(Math.abs(q1-q2), Math.abs(r1-r2), Math.abs((-q1-r1)-(-q2-r2)));
-        if (dist !== 1) return false;
-        if (ring2 === 0 && gameState[`${q1},${r1}`].t !== 'q') return false;
-        return ring2 <= ring1;
+        
+        if (dist !== 1) return false; // Csak szomszédosra
+        if (ring2 === 0 && gameState[`${q1},${r1}`].t !== 'q') return false; // Csak királynő a trónra
+        
+        return ring2 <= ring1; // Oldalra vagy befelé
     }
 
     function executeMove(q1, r1, q2, r2) {
-        gameState[`${q2},${r2}`] = gameState[`${q1},${r1}`];
+        const piece = gameState[`${q1},${r1}`];
         delete gameState[`${q1},${r1}`];
-        checkCaptures(q2, r2);
-        nextTurn();
+        gameState[`${q2},${r2}`] = piece;
+        
+        addLog(`${turn === 1 ? 'Sötét' : 'Világos'} lépett: ${q1},${r1} -> ${q2},${r2}`);
+        checkAllCaptures(q2, r2);
+        endTurn();
     }
 
-    function checkCaptures(q, r) {
+    function checkAllCaptures(q, r) {
         const p = gameState[`${q},${r}`].p;
-        [[1,0], [-1,0], [0,1], [0,-1], [-1,1], [1,-1]].forEach(d => {
+        const dirs = [[1,0], [-1,0], [0,1], [0,-1], [-1,1], [1,-1]];
+        
+        dirs.forEach(d => {
             const eq = q+d[0], er = r+d[1];
-            if (gameState[`${eq},${er}`] && gameState[`${eq},${er}`].p !== p) {
+            const enemy = gameState[`${eq},${er}`];
+            if (enemy && enemy.p !== p) {
                 const fq = eq+d[0], fr = er+d[1];
-                if (gameState[`${fq},${fr}`] && gameState[`${fq},${fr}`].p === p) {
+                const friend = gameState[`${fq},${fr}`];
+                if (friend && friend.p === p) {
+                    // Ütés történt
                     const victim = gameState[`${eq},${er}`];
                     delete gameState[`${eq},${er}`];
                     capturedPool[victim.p].push(victim);
+                    // Királynő mindig a sor elejére kerül
                     capturedPool[victim.p].sort((a,b) => a.t === 'q' ? -1 : 1);
-                    logDiv.innerText = "Bábu kiütve! Visszahelyezés következik.";
+                    addLog(`ÜTÉS! ${victim.p === 1 ? 'Sötét' : 'Világos'} egyik bábuját közrefogták!`, true);
                 }
             }
         });
     }
 
-    function nextTurn() {
+    function endTurn() {
         selectedHex = null;
         turn = turn === 1 ? 2 : 1;
         updateUI();
-        checkWinner();
+        checkWinCondition();
     }
 
-    function checkWinner() {
+    function checkWinCondition() {
         const t = gameState["0,0"];
         if (t && t.t === 'q') {
-            const count = [[1,0], [-1,0], [0,1], [0,-1], [-1,1], [1,-1]].filter(d => {
-                const pc = gameState[`${d[0]},${d[1]}`];
-                return pc && pc.p === t.p && pc.t === 'g';
+            const p = t.p;
+            const neighbors = [[1,0], [-1,0], [0,1], [0,-1], [-1,1], [1,-1]];
+            const guardCount = neighbors.filter(d => {
+                const piece = gameState[`${d[0]},${d[1]}`];
+                return piece && piece.p === p && piece.t === 'g';
             }).length;
-            if (count === 6) { alert(`A ${t.p===1?'Sötét':'Világos'} játékos nyert!`); location.reload(); }
+
+            if (guardCount === 6) {
+                alert(`GRATULÁLUNK! A ${p === 1 ? 'Sötét' : 'Világos'} játékos győzött!`);
+                location.reload();
+            }
         }
     }
 
